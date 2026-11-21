@@ -1974,8 +1974,37 @@ button {
 }
 
 /* ==========================================================================
-   17. RESPONSIVE
+   17. RESPONSIVE & MOBILE-FIRST TOUCH ERGONOMICS
    ========================================================================== */
+
+/* Tactile press feedback & clean tap highlight on touch devices */
+button,
+.choice-card,
+.pill-tile,
+.scenario-btn,
+.chip-btn,
+.composer-opt,
+.moodboard-collage__item {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.choice-card:active,
+.pill-tile:active,
+.scenario-btn:active,
+.btn-primary:active,
+.btn-secondary:active {
+  transform: scale(0.985);
+}
+
+/* iOS / Android safe-area support on sticky bottom bar */
+.journey-bar {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.journey-main {
+  padding-bottom: calc(var(--footer-bar-height) + env(safe-area-inset-bottom, 0px) + 1.5rem);
+}
 
 @media (max-width: 1024px) {
   .welcome-stage,
@@ -2008,32 +2037,289 @@ button {
 }
 
 @media (max-width: 640px) {
+  :root {
+    --topbar-height: 60px;
+    --footer-bar-height: 68px;
+    --gutter: 1rem;
+  }
+
+  .brand-mark__emblem {
+    width: 32px;
+    height: 32px;
+  }
+
+  .brand-mark__va {
+    font-size: 1.4rem;
+  }
+
+  .brand-mark__divider,
   .brand-mark__sub {
     display: none;
+  }
+
+  .chapter-pill {
+    padding: 0.32rem 0.72rem;
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+  }
+
+  .topbar__ghost-btn {
+    padding: 0.48rem;
+    min-width: 38px;
+    min-height: 38px;
+    justify-content: center;
   }
 
   .topbar__ghost-btn span {
     display: none;
   }
 
+  /* Etapa 01 — Boas-vindas equilibrada no celular */
+  .welcome-stage {
+    min-height: auto;
+    padding-top: 1.25rem;
+    padding-bottom: 1.5rem;
+    gap: 1.75rem;
+  }
+
+  .welcome-headline {
+    font-size: clamp(2.15rem, 8.8vw, 2.8rem);
+    max-width: none;
+  }
+
+  .welcome-sub {
+    margin-top: 0.95rem;
+    font-size: 0.94rem;
+  }
+
+  .welcome-actions {
+    margin-top: 1.5rem;
+    width: 100%;
+  }
+
+  .welcome-actions .btn-primary {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .welcome-frame {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: 140px 140px 18px 18px;
+  }
+
+  .welcome-inset {
+    display: none;
+  }
+
+  /* Cabeçalhos mais enxutos para a imagem aparecer logo na primeira dobra */
+  .stage-shell {
+    padding-top: 1.35rem;
+    padding-bottom: 1.25rem;
+  }
+
+  .stage-header {
+    margin-bottom: 1.25rem;
+  }
+
+  .eyebrow {
+    font-size: 0.66rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .stage-title {
+    font-size: clamp(1.72rem, 7vw, 2.2rem);
+  }
+
+  .stage-lead {
+    font-size: 0.89rem;
+    margin-top: 0.6rem;
+  }
+
+  /* Cards com imagens grandes e legíveis (1 por linha no celular) */
   .visual-grid,
   .visual-grid--2,
   .visual-grid--4,
   .pill-grid,
   .form-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .choice-card {
+    border-radius: 16px;
+  }
+
+  .choice-card__check {
+    width: 34px;
+    height: 34px;
+  }
+
+  .choice-card__zoom {
+    width: 40px;
+    height: 40px;
+  }
+
+  .choice-card__body {
+    padding: 0.95rem 1.05rem 1.1rem;
+  }
+
+  /* Etapa 03 — Abas de família de estilo deslizáveis com o polegar */
+  .group-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-inline: calc(var(--gutter) * -1);
+    padding-inline: var(--gutter);
+    padding-bottom: 0.25rem;
+    gap: 0.5rem;
+  }
+
+  .group-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .group-tab {
+    flex-shrink: 0;
+    min-height: 42px;
+    padding: 0.55rem 1rem;
+    font-size: 0.78rem;
+  }
+
+  /* Etapa 05 — Toggle centralizado e confortável */
+  .segmented-toggle {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .segmented-toggle__btn {
+    min-height: 40px;
+    padding: 0.45rem 0.6rem;
+    font-size: 0.7rem;
+    text-align: center;
+  }
+
+  /* Etapa 07 — Comparador de luz mais alto e fácil de arrastar no celular */
+  .lighting-viewport {
+    aspect-ratio: 4 / 3;
+    border-radius: 16px;
+  }
+
+  .lighting-divider__handle {
+    width: 44px;
+    height: 44px;
+    font-size: 0.9rem;
+  }
+
+  .lighting-label {
+    font-size: 0.62rem;
+    padding: 0.28rem 0.6rem;
+  }
+
+  /* Etapa 09 — Inputs >= 16px (previne auto-zoom no iOS Safari) */
+  .field-input,
+  .field-textarea,
+  .field-select {
+    font-size: 16px;
+    min-height: 46px;
+  }
+
+  .chip-btn,
+  .composer-opt,
+  .pill-tile,
+  .btn-edit-inline {
+    min-height: 42px;
+  }
+
+  /* Etapa 10 — Revelação e Moodboard otimizados no celular */
+  .reveal-hero {
+    padding: 1.4rem 1.2rem;
+    border-radius: 18px;
+  }
+
+  .reveal-hero__title {
+    font-size: clamp(1.75rem, 7.2vw, 2.3rem);
+  }
+
+  .reveal-compass {
+    padding: 1.1rem 1.15rem;
+  }
+
+  .moodboard-panel,
+  .editable-card,
+  .reveal-cta-box,
+  .form-card {
+    padding: 1.15rem;
+    border-radius: 16px;
   }
 
   .moodboard-collage {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .moodboard-collage__item:first-child {
+    grid-column: span 2;
+    grid-row: span 1;
+    aspect-ratio: 4 / 3;
+    border-radius: 90px 90px 14px 14px;
+  }
+
+  .reveal-cta-box .btn-primary,
+  .reveal-cta-box .btn-secondary {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  /* Barra inferior de navegação limpa e ergonômica */
+  .journey-bar__inner {
+    gap: 0.55rem;
+    padding-block: 0.55rem;
   }
 
   .journey-bar__meta {
     display: none;
   }
 
-  .welcome-inset {
-    display: none;
+  .journey-bar .btn-secondary {
+    padding: 0.72rem 1rem;
+    min-height: 44px;
+    font-size: 0.72rem;
+  }
+
+  .journey-bar .btn-primary {
+    padding: 0.72rem 1.25rem;
+    min-height: 44px;
+    font-size: 0.72rem;
+  }
+
+  .journey-bar__right {
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  /* Modais confortáveis em telas pequenas */
+  .modal-backdrop {
+    padding: 0.5rem;
+  }
+
+  .lightbox-dialog,
+  .admin-shell {
+    max-height: 95dvh;
+    border-radius: 16px;
+  }
+
+  .lightbox-dialog__foot {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1rem;
+  }
+
+  .admin-header,
+  .admin-body {
+    padding: 1rem;
   }
 }
 

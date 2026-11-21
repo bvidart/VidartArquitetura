@@ -1,5 +1,5 @@
-// Service Worker — VA. Arquitetura & Interiores — Jornada de Descoberta v4
-const CACHE_NAME = 'va-atelier-v4';
+// Service Worker — VA. Arquitetura & Interiores — Jornada de Descoberta v5
+const CACHE_NAME = 'va-atelier-v5';
 
 const SHELL_ASSETS = [
   './',
