@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <title>VA Arquitetura e Interiores — Descoberta Estética</title>
-  <meta name="description" content="Uma jornada visual e interativa de autodescoberta estética em arquitetura e design de interiores — VA Arquitetura e Interiores." />
+  <title>VA Arquitetura e Interiores — Descoberta Estética & Briefing</title>
+  <meta name="description" content="Experiência interativa de descoberta estética e levantamento de necessidades arquitetônicas — VA Arquitetura e Interiores." />
   <meta property="og:title" content="VA Arquitetura e Interiores — Descoberta Estética" />
   <meta property="og:description" content="Todo espaço começa com uma forma única de sentir. Descubra os detalhes que tornam um ambiente verdadeiramente seu." />
   <meta property="og:type" content="website" />
@@ -15,11 +15,11 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 44' fill='none'%3E%3Crect width='44' height='44' rx='10' fill='%23F6F2EC'/%3E%3Cpath d='M7 39V21C7 12.7157 13.7157 6 22 6C30.2843 6 37 12.7157 37 21V39' stroke='%23967751' stroke-width='1.5'/%3E%3Cpath d='M13.5 17L19.5 32.5L25.5 17' stroke='%23221E1A' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21.5 32.5L26.8 17L31.8 32.5' stroke='%23967751' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Plus+Jakarta+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- TOPBAR: Identidade VA preservada + indicador discreto de capítulo -->
+  <!-- TOPBAR: Identidade VA preservada + indicador duplo de progresso (Etapa 05/08 · 1/2) -->
   <header class="topbar" id="topbar">
     <div class="container topbar__inner">
       <button type="button" class="brand-mark" id="brandHomeBtn" aria-label="VA Arquitetura e Interiores — Voltar ao início">
@@ -38,8 +38,9 @@
 
       <div class="topbar__chapter" id="topbarChapter" hidden>
         <span class="chapter-pill" aria-live="polite">
-          <span class="chapter-pill__num" id="chapterCode">01 / 10</span>
-          <span id="chapterName">Boas-vindas</span>
+          <span class="chapter-pill__num" id="chapterCode">01/08</span>
+          <span id="chapterName">Início</span>
+          <span class="chapter-pill__sub" id="chapterSub" hidden>1/2</span>
         </span>
       </div>
 
@@ -56,12 +57,12 @@
     <div class="topbar__progress" id="progressBar" aria-hidden="true"></div>
   </header>
 
-  <!-- PALCO PRINCIPAL DA JORNADA (1 capítulo por vez) -->
+  <!-- PALCO PRINCIPAL (1 pergunta principal por tela) -->
   <main class="journey-main is-welcome" id="journeyMain" aria-live="polite">
     <div class="container" id="stageContainer"></div>
   </main>
 
-  <!-- BARRA DE NAVEGAÇÃO PROGRESSIVA (oculta na tela 01 de boas-vindas) -->
+  <!-- BARRA DE NAVEGAÇÃO CONSISTENTE (Voltar / OK, continuar) -->
   <nav class="journey-bar" id="journeyBar" aria-label="Navegação entre etapas" hidden>
     <div class="container journey-bar__inner">
       <button type="button" class="btn-secondary" id="prevStepBtn">
@@ -71,10 +72,9 @@
         <span>Voltar</span>
       </button>
 
-      <div class="journey-bar__meta" id="journeyMeta">Progresso salvo automaticamente</div>
+      <div class="journey-bar__meta" id="journeyMeta">Salvo automaticamente</div>
 
       <div class="journey-bar__right">
-        <button type="button" class="btn-link-subtle" id="skipStepBtn" hidden>Pular etapa</button>
         <button type="button" class="btn-primary" id="nextStepBtn">
           <span id="nextStepLabel">Continuar</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -85,7 +85,7 @@
     </div>
   </nav>
 
-  <!-- MODAL LIGHTBOX PARA AMPLIAR REFERÊNCIAS -->
+  <!-- MODAL LIGHTBOX -->
   <div class="modal-backdrop" id="lightboxModal" role="dialog" aria-modal="true" aria-labelledby="lightboxTitle" hidden>
     <div class="lightbox-dialog">
       <div class="lightbox-dialog__img-wrap">
@@ -101,13 +101,13 @@
     </div>
   </div>
 
-  <!-- PAINEL INTERNO PRIVADO DA EQUIPE DE ARQUITETURA -->
+  <!-- PAINEL INTERNO PRIVADO DA EQUIPE VIDART -->
   <div class="modal-backdrop" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle" hidden>
     <div class="admin-shell">
       <div class="admin-header">
         <div>
           <span class="eyebrow" style="margin-bottom:0.2rem;color:var(--bronze-light);">Área Privada · VA Arquitetura</span>
-          <h2 id="adminModalTitle" style="font-family:var(--font-display);font-weight:400;font-size:1.65rem;">Painel de Briefings & Curadoria</h2>
+          <h2 id="adminModalTitle" style="font-family:var(--font-display);font-weight:400;font-size:1.65rem;">Painel de Briefings & Necessidades</h2>
         </div>
         <button type="button" class="btn-secondary" id="adminCloseBtn" style="color:var(--ink-light);border-color:var(--hairline-dark);">Fechar</button>
       </div>
@@ -116,6 +116,7 @@
   </div>
 
   <script src="data.js"></script>
+  <script src="checklist.js"></script>
   <script src="storage.js"></script>
   <script src="app.js"></script>
 </body>

@@ -1,31 +1,33 @@
 // =========================================================================
-// VA. ARQUITETURA & INTERIORES — CONTROLADOR DA JORNADA DE DESCOBERTA
-// Arquitetura orientada a estado, personalização adaptativa e painel interno.
+// VA. ARQUITETURA & INTERIORES — CONTROLADOR UNIFICADO (FASE 1 + FASE 2)
+// Jornada estética em 8 etapas (1 pergunta por tela) + Checklist Inteligente
+// de Necessidades + Prioridades + Resumo Editável + Painel Privado Vidart.
 // =========================================================================
 
 (function () {
   const DATA = window.VA_DATA;
+  const CHK = window.VA_CHECKLIST;
   const STORE = window.VA_STORAGE;
 
-  // Estado centralizado da aplicação
   let draft = STORE.loadDraft();
   let ui = {
     activeStyleGroup: null,
-    materialViewMode: 'sample', // 'sample' | 'applied'
     lightingCompareSplit: 50,
+    expandedChecklistQuestions: {}, // { [questionId]: true } para "Ver outras opções"
     adminAuthenticated: false,
     adminSelectedId: null,
     adminSearch: '',
-    adminTab: 'records', // 'records' | 'settings'
-    submitFeedback: null
+    adminTab: 'records',
+    submitFeedback: null,
+    returnToReveal: false
   };
 
-  // Referências de DOM
   const els = {
     brandHomeBtn: document.getElementById('brandHomeBtn'),
     topbarChapter: document.getElementById('topbarChapter'),
     chapterCode: document.getElementById('chapterCode'),
     chapterName: document.getElementById('chapterName'),
+    chapterSub: document.getElementById('chapterSub'),
     progressBar: document.getElementById('progressBar'),
     journeyMain: document.getElementById('journeyMain'),
     stageContainer: document.getElementById('stageContainer'),
@@ -33,7 +35,6 @@
     prevStepBtn: document.getElementById('prevStepBtn'),
     nextStepBtn: document.getElementById('nextStepBtn'),
     nextStepLabel: document.getElementById('nextStepLabel'),
-    skipStepBtn: document.getElementById('skipStepBtn'),
     journeyMeta: document.getElementById('journeyMeta'),
     lightboxModal: document.getElementById('lightboxModal'),
     lightboxImg: document.getElementById('lightboxImg'),
@@ -61,11 +62,8 @@
 
   function toggleInArray(arr, id) {
     const idx = arr.indexOf(id);
-    if (idx >= 0) {
-      arr.splice(idx, 1);
-    } else {
-      arr.push(id);
-    }
+    if (idx >= 0) arr.splice(idx, 1);
+    else arr.push(id);
   }
 
   function findById(list, id) {
@@ -83,7 +81,88 @@
   }
 
   // =========================================================================
-  // MOTOR DE PERSONALIZAÇÃO INTELIGENTE (AFINIDADES PROGRESSIVAS)
+  // ESTRUTURA DE SUBETAPAS (1 PERGUNTA PRINCIPAL POR TELA)
+  // =========================================================================
+
+  function getStep8SubSteps() {
+    const questions = CHK.buildChecklistQuestions(draft.projectContext);
+    const markedNeeds = CHK.collectMarkedNeeds(questions, draft.checklist.answers);
+    const subSteps = questions.map((q) => ({ type: 'checklist', question: q }));
+    if (markedNeeds.length > 0) {
+      subSteps.push({ type: 'priorities', needs: markedNeeds });
+    }
+    subSteps.push({ type: 'contact' });
+    subSteps.push({ type: 'reveal' });
+    return subSteps;
+  }
+
+  function getSubStepCount(step) {
+    if (step === 2) return 3; // Ambientes, Estilos, Cores
+    if (step === 5) return 2; // Simulador, Qualidades
+    if (step === 6) return 3; // Sensações, Descanso, Especial
+    if (step === 7) return 2; // Tipo/Perfil, Ambientes/Contexto
+    if (step === 8) return getStep8SubSteps().length;
+    return 1;
+  }
+
+  function goTo(step, subStep = 0, opts = {}) {
+    const clampedStep = Math.max(1, Math.min(8, step));
+    const maxSub = Math.max(0, getSubStepCount(clampedStep) - 1);
+    const clampedSub = Math.max(0, Math.min(maxSub, subStep));
+
+    if (draft.currentStep > 1) markStepCompleted(draft.currentStep);
+
+    if (opts.returnToReveal) {
+      ui.returnToReveal = true;
+    } else if (clampedStep === 1 || (clampedStep === 8 && clampedSub === maxSub)) {
+      ui.returnToReveal = false;
+    }
+
+    draft.currentStep = clampedStep;
+    draft.currentSubStep = clampedSub;
+    persist();
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function goToFinalReveal() {
+    const step8Subs = getStep8SubSteps();
+    goTo(8, step8Subs.length - 1);
+  }
+
+  function goNext() {
+    if (ui.returnToReveal) {
+      goToFinalReveal();
+      return;
+    }
+    const step = draft.currentStep;
+    const sub = draft.currentSubStep;
+    const count = getSubStepCount(step);
+    if (sub + 1 < count) {
+      goTo(step, sub + 1);
+    } else if (step < 8) {
+      goTo(step + 1, 0);
+    }
+  }
+
+  function goPrev() {
+    if (ui.returnToReveal) {
+      goToFinalReveal();
+      return;
+    }
+    const step = draft.currentStep;
+    const sub = draft.currentSubStep;
+    if (sub > 0) {
+      goTo(step, sub - 1);
+    } else if (step > 1) {
+      const prevStep = step - 1;
+      const prevCount = getSubStepCount(prevStep);
+      goTo(prevStep, prevCount - 1);
+    }
+  }
+
+  // =========================================================================
+  // MOTOR DE AFINIDADES & BÚSSOLA ESTÉTICA
   // =========================================================================
 
   function computeAffinityScores(selections) {
@@ -93,13 +172,11 @@
         scores[t] = (scores[t] || 0) + weight;
       });
     };
-
     selections.environments.forEach((id) => addTags(findById(DATA.environments, id)?.tags, 2));
     selections.styles.forEach((id) => addTags(findById(DATA.styles, id)?.tags, 3));
     selections.palettes.forEach((id) => addTags(findById(DATA.palettes, id)?.tags, 2));
     selections.materials.forEach((id) => addTags(findById(DATA.materials, id)?.tags, 2));
     selections.combinations.forEach((id) => addTags(findById(DATA.combinations, id)?.tags, 3));
-
     return scores;
   }
 
@@ -107,9 +184,9 @@
     let bestId = DATA.styleGroups[0].id;
     let bestScore = -1;
     DATA.styleGroups.forEach((g) => {
-      const s = g.tags.reduce((acc, t) => acc + (scores[t] || 0), 0);
-      if (s > bestScore) {
-        bestScore = s;
+      const sc = g.tags.reduce((a, t) => a + (scores[t] || 0), 0);
+      if (sc > bestScore) {
+        bestScore = sc;
         bestId = g.id;
       }
     });
@@ -119,106 +196,12 @@
   function getRankedCombinations(scores) {
     const hasScores = Object.keys(scores).length > 0;
     return DATA.combinations
-      .map((c, idx) => {
-        const score = c.tags.reduce((acc, t) => acc + (scores[t] || 0), 0);
-        return { ...c, _score: score, _idx: idx };
-      })
+      .map((c, idx) => ({
+        ...c,
+        _score: c.tags.reduce((a, t) => a + (scores[t] || 0), 0),
+        _idx: idx
+      }))
       .sort((a, b) => (hasScores ? b._score - a._score || a._idx - b._idx : a._idx - b._idx));
-  }
-
-  function buildContextualReflection(step) {
-    const s = draft.selections;
-    const scores = computeAffinityScores(s);
-    const topTags = Object.entries(scores)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([tag]) => tag);
-
-    if (step === 2 && s.environments.length > 0) {
-      if (topTags.includes('organico') || topTags.includes('natural')) {
-        return 'Você parece se identificar com ambientes de linhas suaves, materiais naturais e atmosferas acolhedoras.';
-      }
-      if (topTags.includes('classico') || topTags.includes('elegante')) {
-        return 'Seu olhar demonstra afinidade por proporções equilibradas, arquitetura clássica atualizada e elegância serena.';
-      }
-      if (topTags.includes('minimalista') || topTags.includes('monocromatico')) {
-        return 'Você valoriza o silêncio visual, superfícies contínuas e a presença calma da luz natural.';
-      }
-      if (topTags.includes('profundo') || topTags.includes('intimista')) {
-        return 'Há uma inclinação marcante por espaços envolventes, madeiras expressivas e atmosfera intimista.';
-      }
-      return 'Suas primeiras escolhas já revelam uma busca equilibrada entre arquitetura marcante e conforto cotidiano.';
-    }
-
-    if (step === 3 && s.styles.length > 0) {
-      const names = s.styles.map((id) => findById(DATA.styles, id)?.title).filter(Boolean);
-      if (names.length === 1) {
-        return `O olhar ${names[0].toLowerCase()} aparece como ponto de partida — você pode combiná-lo com outras referências para enriquecer o resultado.`;
-      }
-      return `A combinação entre ${names.slice(0, 3).join(', ')} sugere um repertório autoral e híbrido, livre de rótulos rígidos.`;
-    }
-
-    if (step === 4 && s.palettes.length > 0) {
-      const names = s.palettes.map((id) => findById(DATA.palettes, id)?.title.toLowerCase()).filter(Boolean);
-      return `Sua paleta caminha para ${names.slice(0, 2).join(' e ')}, definindo o tom emocional dos espaços.`;
-    }
-
-    if (step === 5 && s.materials.length > 0) {
-      const names = s.materials.map((id) => findById(DATA.materials, id)?.title.toLowerCase()).filter(Boolean);
-      return `A presença de ${names.slice(0, 3).join(', ')} indica uma preferência tátil clara — vamos explorar como esses materiais conversam entre si.`;
-    }
-
-    if (step === 6 && (s.combinations.length > 0 || s.customCombination.stone)) {
-      return 'Essas composições já desenham a base material do projeto, equilibrando temperatura visual, textura e luz.';
-    }
-
-    if (step === 7 && s.lightingPreferences.length > 0) {
-      const first = findById(DATA.lightingPreferences, s.lightingPreferences[0]);
-      return `Priorizar ${first ? first.title.toLowerCase() : 'a luz certa'} vai orientar o desenho luminotécnico para valorizar cada superfície escolhida.`;
-    }
-
-    return null;
-  }
-
-  function buildAestheticSynthesis() {
-    const s = draft.selections;
-    const styleTitles = s.styles.map((id) => findById(DATA.styles, id)?.title).filter(Boolean);
-    const paletteTitles = s.palettes.map((id) => findById(DATA.palettes, id)?.title).filter(Boolean);
-    const matTitles = s.materials.map((id) => findById(DATA.materials, id)?.title).filter(Boolean);
-    const feelTitles = s.homeFeelings.map((id) => findById(DATA.homeFeelings, id)?.title).filter(Boolean);
-    const lightTitles = s.lightingPreferences.map((id) => findById(DATA.lightingPreferences, id)?.title).filter(Boolean);
-
-    const headline =
-      styleTitles.length >= 2
-        ? `${styleTitles[0]} com nuances ${styleTitles[1].toLowerCase()}`
-        : styleTitles.length === 1
-          ? `Essência ${styleTitles[0]} com olhar autoral`
-          : 'Curadoria Arquitetônica Personalizada';
-
-    const parts = [];
-    if (styleTitles.length) {
-      parts.push(`Suas escolhas convergem para uma linguagem que dialoga com ${styleTitles.slice(0, 3).join(', ')}, sem se limitar a um único rótulo.`);
-    } else {
-      parts.push('Suas escolhas revelam uma sensibilidade voltada à harmonia espacial, proporção e conforto visual.');
-    }
-    if (paletteTitles.length) {
-      parts.push(`Na atmosfera cromática, destacam-se ${paletteTitles.slice(0, 2).join(' e ').toLowerCase()}.`);
-    }
-    if (matTitles.length) {
-      parts.push(`A materialidade privilegia o toque de ${matTitles.slice(0, 4).join(', ').toLowerCase()}.`);
-    }
-    if (feelTitles.length) {
-      parts.push(`No modo de viver, o espaço precisa despertar ${feelTitles.slice(0, 3).join(', ').toLowerCase()}.`);
-    }
-    if (lightTitles.length) {
-      parts.push(`A iluminação acompanha esse ritmo através de ${lightTitles.slice(0, 2).join(' e ').toLowerCase()}.`);
-    }
-
-    return {
-      headline,
-      narrative: parts.join(' '),
-      tags: [...styleTitles.slice(0, 3), ...feelTitles.slice(0, 2)].slice(0, 5)
-    };
   }
 
   function computeAestheticCompass(selections) {
@@ -229,7 +212,6 @@
       if (l === 0 && r === 0) return 50;
       return Math.round(18 + (r / (l + r)) * 64);
     };
-
     const lightBonus =
       selections.lightingScenario === 'intimista'
         ? 18
@@ -238,9 +220,7 @@
           : selections.lightingScenario === 'natural_abundante'
             ? -14
             : 0;
-
     const clamp = (v) => Math.max(15, Math.min(85, v));
-
     return [
       {
         left: 'Luminoso & Arejado',
@@ -265,111 +245,157 @@
     ];
   }
 
-  // =========================================================================
-  // NAVEGAÇÃO ENTRE CAPÍTULOS
-  // =========================================================================
+  function buildAestheticSynthesis() {
+    const s = draft.selections;
+    const styleTitles = s.styles.map((id) => findById(DATA.styles, id)?.title).filter(Boolean);
+    const paletteTitles = s.palettes.map((id) => findById(DATA.palettes, id)?.title).filter(Boolean);
+    const matTitles = s.materials.map((id) => findById(DATA.materials, id)?.title).filter(Boolean);
+    const feelTitles = s.homeFeelings.map((id) => findById(DATA.homeFeelings, id)?.title).filter(Boolean);
 
-  function goToStep(stepNumber, opts = {}) {
-    const clamped = Math.max(1, Math.min(10, stepNumber));
-    if (draft.currentStep > 1) {
-      markStepCompleted(draft.currentStep);
+    const headline =
+      styleTitles.length >= 2
+        ? `${styleTitles[0]} com nuances ${styleTitles[1].toLowerCase()}`
+        : styleTitles.length === 1
+          ? `Essência ${styleTitles[0]} com olhar autoral`
+          : 'Curadoria Arquitetônica Personalizada';
+
+    const parts = [];
+    if (styleTitles.length) {
+      parts.push(`Suas escolhas dialogam com ${styleTitles.slice(0, 3).join(', ')}, sem se limitar a um único rótulo.`);
+    } else {
+      parts.push('Suas escolhas revelam busca por equilíbrio espacial, proporção e conforto visual.');
     }
-    if (opts.returnToReveal) {
-      ui.returnToReveal = true;
-    } else if (clamped === 10 || clamped === 1) {
-      ui.returnToReveal = false;
+    if (paletteTitles.length) {
+      parts.push(`Na paleta, destacam-se ${paletteTitles.slice(0, 2).join(' e ').toLowerCase()}.`);
     }
-    draft.currentStep = clamped;
-    persist();
-    render();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (matTitles.length) {
+      parts.push(`Na materialidade, sobressaem ${matTitles.slice(0, 3).join(', ').toLowerCase()}.`);
+    }
+    if (feelTitles.length) {
+      parts.push(`No jeito de viver, o espaço precisa despertar ${feelTitles.slice(0, 3).join(', ').toLowerCase()}.`);
+    }
+
+    return {
+      headline,
+      narrative: parts.join(' '),
+      tags: [...styleTitles.slice(0, 3), ...feelTitles.slice(0, 2)].slice(0, 5)
+    };
   }
+
+  function buildChecklistSummary() {
+    const questions = CHK.buildChecklistQuestions(draft.projectContext);
+    const answers = draft.checklist.answers || {};
+    const byRoom = [];
+    const preserve = [];
+
+    questions.forEach((q) => {
+      const selectedIds = answers[q.id] || [];
+      if (!selectedIds.length) return;
+      const labels = selectedIds
+        .map((oid) => q.options.find((o) => o.id === oid)?.label)
+        .filter(Boolean);
+      if (!labels.length) return;
+
+      if (q.kind === 'preserve') {
+        preserve.push(...labels);
+      } else {
+        byRoom.push({
+          questionId: q.id,
+          category: q.category,
+          kind: q.kind,
+          items: labels
+        });
+      }
+    });
+
+    const markedNeeds = CHK.collectMarkedNeeds(questions, answers);
+    const topPriorities = (draft.checklist.priorities || [])
+      .map((pid) => markedNeeds.find((n) => n.id === pid))
+      .filter(Boolean);
+
+    return { byRoom, preserve, topPriorities };
+  }
+
+  // =========================================================================
+  // CHROME & INDICADOR DUPLO DE PROGRESSO (ex: 05/08 · 1/2)
+  // =========================================================================
 
   function updateChrome() {
     const step = draft.currentStep;
+    const sub = draft.currentSubStep;
+    const subCount = getSubStepCount(step);
     const chapter = DATA.chapters.find((c) => c.step === step) || DATA.chapters[0];
     const isWelcome = step === 1;
+    const step8Subs = step === 8 ? getStep8SubSteps() : [];
+    const currentStep8Item = step === 8 ? step8Subs[sub] : null;
+    const isFinalReveal = step === 8 && currentStep8Item?.type === 'reveal';
+    const isChecklistLike =
+      step === 8 && (currentStep8Item?.type === 'checklist' || currentStep8Item?.type === 'priorities');
 
     els.topbarChapter.hidden = isWelcome;
-    els.chapterCode.textContent = `${chapter.code} / 10`;
+    els.chapterCode.textContent = `${chapter.code}/08`;
     els.chapterName.textContent = chapter.short;
-    els.progressBar.style.transform = `scaleX(${step / 10})`;
+
+    if (subCount > 1 && !isFinalReveal) {
+      els.chapterSub.hidden = false;
+      els.chapterSub.textContent = `${sub + 1}/${subCount}`;
+    } else {
+      els.chapterSub.hidden = true;
+    }
+
+    const overallProgress = ((step - 1) + (sub + 1) / subCount) / 8;
+    els.progressBar.style.transform = `scaleX(${Math.max(0.08, Math.min(1, overallProgress))})`;
 
     els.journeyMain.classList.toggle('is-welcome', isWelcome);
     els.journeyBar.hidden = isWelcome;
 
     if (!isWelcome) {
       els.prevStepBtn.hidden = false;
-      const isOptional = step === 6 || step === 8 || step === 9;
-      els.skipStepBtn.hidden = !isOptional || ui.returnToReveal;
-
-      if (step === 10) {
+      if (isFinalReveal) {
         els.nextStepBtn.hidden = true;
-        els.skipStepBtn.hidden = true;
-        els.journeyMeta.textContent = 'Sua identidade estética está pronta — edite qualquer bloco quando quiser';
+        els.journeyMeta.textContent = 'Resumo completo pronto — clique em Editar em qualquer bloco';
       } else if (ui.returnToReveal) {
         els.nextStepBtn.hidden = false;
-        els.nextStepLabel.textContent = 'Salvar e voltar ao meu perfil';
-        els.journeyMeta.textContent = 'Editando escolha · Suas alterações atualizam o perfil automaticamente';
+        els.nextStepLabel.textContent = 'Salvar e voltar ao resumo';
+        els.journeyMeta.textContent = 'Editando escolha · Atualização instantânea';
       } else {
         els.nextStepBtn.hidden = false;
-        els.nextStepLabel.textContent = step === 9 ? 'Revelar minha identidade' : 'Continuar';
-        els.journeyMeta.textContent = `Etapa ${chapter.code} de 10 · Salvo automaticamente`;
+        if (isChecklistLike) {
+          els.nextStepLabel.textContent = 'OK, continuar';
+        } else if (step === 8 && currentStep8Item?.type === 'contact') {
+          els.nextStepLabel.textContent = 'Ver meu perfil completo';
+        } else {
+          els.nextStepLabel.textContent = 'Continuar';
+        }
+        els.journeyMeta.textContent =
+          subCount > 1
+            ? `Etapa ${chapter.code}/08 · Pergunta ${sub + 1} de ${subCount} · Salvo`
+            : `Etapa ${chapter.code}/08 · Salvo automaticamente`;
       }
     }
   }
 
   // =========================================================================
-  // RENDERIZAÇÃO DAS 10 ETAPAS
+  // COMPONENTES REUTILIZÁVEIS
   // =========================================================================
 
-  function render() {
-    updateChrome();
-    const step = draft.currentStep;
-    let html = '';
-
-    switch (step) {
-      case 1: html = renderStep1Welcome(); break;
-      case 2: html = renderStep2Environments(); break;
-      case 3: html = renderStep3Styles(); break;
-      case 4: html = renderStep4Palettes(); break;
-      case 5: html = renderStep5Materials(); break;
-      case 6: html = renderStep6Combinations(); break;
-      case 7: html = renderStep7Lighting(); break;
-      case 8: html = renderStep8Living(); break;
-      case 9: html = renderStep9ProjectContext(); break;
-      case 10: html = renderStep10Reveal(); break;
-    }
-
-    if (ui.returnToReveal && step > 1 && step < 10) {
-      const banner = `
-        <div class="return-edit-banner" style="margin-top:1.25rem;margin-bottom:0;">
-          <p class="return-edit-banner__text">
-            <strong>Modo de ajuste:</strong> altere suas preferências abaixo e volte direto para o seu painel final atualizado.
-          </p>
-          <button type="button" class="btn-primary" id="returnToRevealBannerBtn" style="background:var(--bronze);border-color:var(--bronze);padding:0.6rem 1.25rem;">
-            Voltar ao meu perfil
-          </button>
-        </div>
-      `;
-      html = banner + html;
-    }
-
-    els.stageContainer.innerHTML = html;
-    bindStageEvents(step);
+  function checkMarkHtml() {
+    return `
+      <span class="choice-card__check" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </span>
+    `;
   }
 
-  function renderReflectionHtml(step) {
-    const text = buildContextualReflection(step);
-    if (!text) return '';
+  function circleCheckHtml() {
     return `
-      <div class="reflection-whisper" role="status">
-        <span class="reflection-whisper__dot" aria-hidden="true"></span>
-        <div>
-          <p class="reflection-whisper__text">“${escapeHtml(text)}”</p>
-          <span class="reflection-whisper__hint">Percepção inicial — você pode refinar ou alterar suas escolhas a qualquer momento.</span>
-        </div>
-      </div>
+      <span class="checklist-circle" aria-hidden="true">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </span>
     `;
   }
 
@@ -386,17 +412,62 @@
     `;
   }
 
-  function checkMarkHtml() {
-    return `
-      <span class="choice-card__check" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-      </span>
-    `;
+  // =========================================================================
+  // RENDERIZAÇÃO PRINCIPAL
+  // =========================================================================
+
+  function render() {
+    const maxSub = Math.max(0, getSubStepCount(draft.currentStep) - 1);
+    if (draft.currentSubStep > maxSub) draft.currentSubStep = maxSub;
+
+    updateChrome();
+    const step = draft.currentStep;
+    const sub = draft.currentSubStep;
+    let html = '';
+
+    if (step === 1) html = renderStep1Welcome();
+    else if (step === 2 && sub === 0) html = renderStep2Environments();
+    else if (step === 2 && sub === 1) html = renderStep2Styles();
+    else if (step === 2 && sub === 2) html = renderStep2Palettes();
+    else if (step === 3) html = renderStep3Materials();
+    else if (step === 4) html = renderStep4Combinations();
+    else if (step === 5 && sub === 0) html = renderStep5LightingSimulator();
+    else if (step === 5 && sub === 1) html = renderStep5LightingQualities();
+    else if (step === 6 && sub === 0) html = renderStep6Feelings();
+    else if (step === 6 && sub === 1) html = renderStep6RestSpaces();
+    else if (step === 6 && sub === 2) html = renderStep6SpecialElements();
+    else if (step === 7 && sub === 0) html = renderStep7ProjectType();
+    else if (step === 7 && sub === 1) html = renderStep7ProjectRooms();
+    else if (step === 8) {
+      const step8Subs = getStep8SubSteps();
+      const item = step8Subs[sub] || step8Subs[step8Subs.length - 1];
+      if (item.type === 'checklist') html = renderChecklistQuestion(item.question, sub, step8Subs.length);
+      else if (item.type === 'priorities') html = renderChecklistPriorities(item.needs);
+      else if (item.type === 'contact') html = renderStep8Contact();
+      else html = renderStep8Reveal();
+    }
+
+    if (ui.returnToReveal && step > 1) {
+      html =
+        `
+        <div class="return-edit-banner" style="margin-top:1.1rem;margin-bottom:0;">
+          <p class="return-edit-banner__text">
+            <strong>Modo de ajuste:</strong> altere suas preferências e volte direto para o resumo final atualizado.
+          </p>
+          <button type="button" class="btn-primary" id="returnToRevealBannerBtn" style="background:var(--bronze);border-color:var(--bronze);padding:0.55rem 1.2rem;">
+            Voltar ao resumo
+          </button>
+        </div>
+      ` + html;
+    }
+
+    els.stageContainer.innerHTML = html;
+    bindStageEvents();
   }
 
-  // ETAPA 01 — BOAS-VINDAS
+  // -----------------------------------------------------------------------
+  // ETAPA 01/08 — BOAS-VINDAS
+  // -----------------------------------------------------------------------
   function renderStep1Welcome() {
     const hasProgress =
       draft.selections.environments.length > 0 ||
@@ -416,7 +487,7 @@
             Todo espaço começa com uma forma única de <em>sentir.</em>
           </h1>
           <p class="welcome-sub">
-            Vamos descobrir os detalhes que tornam um ambiente verdadeiramente seu. Uma jornada visual, leve e personalizada para traduzir o seu olhar em arquitetura.
+            Vamos descobrir os detalhes que tornam um ambiente verdadeiramente seu e entender o que o seu espaço precisa resolver no dia a dia.
           </p>
           <div class="welcome-actions">
             <button type="button" class="btn-primary" id="startJourneyBtn">
@@ -427,33 +498,30 @@
             </button>
             ${hasProgress ? `<button type="button" class="btn-link-subtle" id="resetDraftWelcomeBtn">Recomeçar do zero</button>` : ''}
           </div>
-          <p class="welcome-note">Sem questionários longos · Cerca de 4 minutos · Suas escolhas são salvas automaticamente</p>
+          <p class="welcome-note">8 etapas breves · 1 pergunta por tela · Salvo automaticamente</p>
         </div>
 
         <div class="welcome-visual">
           <div class="welcome-frame">
-            <img src="assets/va-ref-01.webp" alt="Ambiente contemporâneo em gesso mineral, linho cru e carvalho sob luz natural" />
-          </div>
-          <div class="welcome-inset" aria-hidden="true">
-            <img src="assets/va-ref-02.webp" alt="" />
+            <img src="${DATA.welcomeHeroImage}" alt="Sala de estar em gesso mineral, linho cru e carvalho sob luz natural" />
           </div>
         </div>
       </section>
     `;
   }
 
-  // ETAPA 02 — CONEXÃO COM OS AMBIENTES
+  // -----------------------------------------------------------------------
+  // ETAPA 02/08 — DESCOBERTA ESTÉTICA (1/3 Ambientes, 2/3 Estilos, 3/3 Cores)
+  // -----------------------------------------------------------------------
   function renderStep2Environments() {
     const selected = draft.selections.environments;
     return `
       <section class="stage-shell">
         <div class="stage-header">
-          <p class="eyebrow">Capítulo 02 · Conexão com os Ambientes</p>
+          <p class="eyebrow">Etapa 02/08 · Descoberta Estética (1/3)</p>
           <h1 class="stage-title">Em qual destes espaços você gostaria de <em>estar?</em></h1>
-          <p class="stage-lead">
-            Observe a luz, as proporções e a sensação de cada ambiente. Selecione um ou mais espaços que despertem acolhimento imediato — você pode ampliar qualquer fotografia.
-          </p>
-          ${renderReflectionHtml(2)}
+          <p class="stage-lead">Observe a luz, as proporções e a sensação de cada ambiente.</p>
+          <p class="stage-question">Selecione um ou mais ambientes que despertem afinidade imediata.</p>
         </div>
 
         <div class="visual-grid">
@@ -481,27 +549,19 @@
     `;
   }
 
-  // ETAPA 03 — DESCOBERTA DOS ESTILOS
-  function renderStep3Styles() {
+  function renderStep2Styles() {
     const scores = computeAffinityScores(draft.selections);
     const suggestedGroupId = getSuggestedStyleGroup(scores);
-    if (!ui.activeStyleGroup) {
-      ui.activeStyleGroup = suggestedGroupId;
-    }
-
-    const activeGroup =
-      DATA.styleGroups.find((g) => g.id === ui.activeStyleGroup) || DATA.styleGroups[0];
+    if (!ui.activeStyleGroup) ui.activeStyleGroup = suggestedGroupId;
+    const activeGroup = DATA.styleGroups.find((g) => g.id === ui.activeStyleGroup) || DATA.styleGroups[0];
     const groupStyles = DATA.styles.filter((st) => st.groupId === activeGroup.id);
 
     return `
       <section class="stage-shell">
         <div class="stage-header">
-          <p class="eyebrow">Capítulo 03 · Descoberta dos Estilos</p>
+          <p class="eyebrow">Etapa 02/08 · Descoberta Estética (2/3)</p>
           <h1 class="stage-title">Quais linguagens arquitetônicas conversam com <em>você?</em></h1>
-          <p class="stage-lead">
-            Organizamos os estilos em três famílias para facilitar a comparação. Sinta-se livre para escolher referências de grupos diferentes — projetos autorais nascem de combinações híbridas.
-          </p>
-          ${renderReflectionHtml(3)}
+          <p class="stage-lead">Você pode combinar estilos de famílias diferentes — projetos autorais nascem de referências híbridas.</p>
         </div>
 
         <div class="group-tabs" role="tablist" aria-label="Famílias de estilo">
@@ -536,7 +596,6 @@
                     ${zoomBtnHtml(st.image, st.title, st.desc)}
                   </div>
                   <div class="choice-card__body">
-                    <span class="choice-card__kicker">${escapeHtml(activeGroup.title)}</span>
                     <h2 class="choice-card__title">${escapeHtml(st.title)}</h2>
                     <p class="choice-card__desc">${escapeHtml(st.desc)}</p>
                   </div>
@@ -549,42 +608,16 @@
     `;
   }
 
-  // ETAPA 04 — PALETAS E SENSAÇÕES
-  function renderStep4Palettes() {
+  function renderStep2Palettes() {
     const selected = draft.selections.palettes;
-    const activePalettes = selected.map((id) => findById(DATA.palettes, id)).filter(Boolean);
-
     return `
       <section class="stage-shell">
         <div class="stage-header">
-          <p class="eyebrow">Capítulo 04 · Paletas e Sensações</p>
-          <h1 class="stage-title">Como as cores transformam a <em>sensação</em> do espaço?</h1>
-          <p class="stage-lead">
-            Observe cada família cromática aplicada em ambientes reais. Selecione uma ou mais paletas que traduzam o clima que você deseja sentir diariamente.
-          </p>
-          ${renderReflectionHtml(4)}
+          <p class="eyebrow">Etapa 02/08 · Descoberta Estética (3/3)</p>
+          <h1 class="stage-title">Quais paletas traduzem a <em>sensação</em> que você procura?</h1>
+          <p class="stage-lead">Observe como cada família de cores altera a percepção do ambiente.</p>
+          <p class="stage-question">Selecione uma ou mais paletas preferidas.</p>
         </div>
-
-        ${
-          activePalettes.length
-            ? `
-            <div class="palette-preview-strip">
-              <div>
-                <span class="choice-card__kicker">Sua curadoria cromática atual</span>
-                <p style="font-size:0.9rem;color:var(--ink-primary);margin-top:0.2rem;">
-                  ${activePalettes.map((p) => escapeHtml(p.title)).join(' · ')}
-                </p>
-              </div>
-              <div class="palette-preview-strip__swatches">
-                ${activePalettes
-                  .flatMap((p) => p.colors.slice(0, 3))
-                  .map((hex) => `<span class="palette-dot" style="background:${hex}" title="${hex}"></span>`)
-                  .join('')}
-              </div>
-            </div>
-          `
-            : ''
-        }
 
         <div class="visual-grid">
           ${DATA.palettes
@@ -601,7 +634,7 @@
                   <div class="choice-card__body">
                     <h2 class="choice-card__title">${escapeHtml(pal.title)}</h2>
                     <p class="choice-card__desc">${escapeHtml(pal.desc)}</p>
-                    <div class="swatch-bar" aria-label="Amostras da paleta ${escapeHtml(pal.title)}">
+                    <div class="swatch-bar">
                       ${pal.colors.map((c) => `<span style="background:${c}"></span>`).join('')}
                     </div>
                   </div>
@@ -614,44 +647,31 @@
     `;
   }
 
-  // ETAPA 05 — MATERIAIS E TEXTURAS
-  function renderStep5Materials() {
+  // -----------------------------------------------------------------------
+  // ETAPA 03/08 — MATERIAIS E TEXTURAS (múltipla escolha)
+  // -----------------------------------------------------------------------
+  function renderStep3Materials() {
     const selected = draft.selections.materials;
-    const mode = ui.materialViewMode;
-
     return `
       <section class="stage-shell">
         <div class="stage-header">
-          <p class="eyebrow">Capítulo 05 · Materiais e Texturas</p>
-          <h1 class="stage-title">Quais superfícies convidam ao <em>toque?</em></h1>
-          <p class="stage-lead">
-            Alterne entre o detalhe da textura e a aplicação arquitetônica para perceber relevo, acabamento e comportamento da luz. Selecione os materiais que despertam sua identificação.
-          </p>
-          ${renderReflectionHtml(5)}
-        </div>
-
-        <div class="view-mode-bar">
-          <div class="segmented-toggle" role="group" aria-label="Modo de visualização dos materiais">
-            <button type="button" class="segmented-toggle__btn ${mode === 'sample' ? 'is-active' : ''}" data-mat-mode="sample">Detalhe e Textura</button>
-            <button type="button" class="segmented-toggle__btn ${mode === 'applied' ? 'is-active' : ''}" data-mat-mode="applied">Aplicado no Ambiente</button>
-          </div>
-          <span style="font-size:0.82rem;color:var(--ink-muted);">
-            ${selected.length} ${selected.length === 1 ? 'material selecionado' : 'materiais selecionados'}
-          </span>
+          <p class="eyebrow">Etapa 03/08 · Materiais e Texturas</p>
+          <h1 class="stage-title">Quais superfícies despertam sua <em>identificação?</em></h1>
+          <p class="stage-lead">Observe relevo, acabamento e comportamento da luz em cada material.</p>
+          <p class="stage-question">Marque quantos materiais desejar.</p>
         </div>
 
         <div class="visual-grid">
           ${DATA.materials
             .map((mat) => {
               const isSel = selected.includes(mat.id);
-              const imgUrl = mode === 'applied' ? mat.appliedImage : mat.sampleImage;
               return `
                 <article class="choice-card ${isSel ? 'is-selected' : ''}" tabindex="0" role="checkbox" aria-checked="${isSel}" data-select-type="materials" data-id="${mat.id}">
                   <div class="choice-card__media">
-                    <img src="${imgUrl}" alt="${escapeHtml(mat.title)}" loading="lazy" />
+                    <img src="${mat.image}" alt="${escapeHtml(mat.title)}" loading="lazy" />
                     <span class="choice-card__badge">${escapeHtml(mat.category)}</span>
                     ${checkMarkHtml()}
-                    ${zoomBtnHtml(imgUrl, mat.title, `${mat.finish} — ${mat.desc}`)}
+                    ${zoomBtnHtml(mat.image, mat.title, `${mat.finish} — ${mat.desc}`)}
                   </div>
                   <div class="choice-card__body">
                     <div class="material-head-row">
@@ -670,8 +690,10 @@
     `;
   }
 
-  // ETAPA 06 — COMBINAÇÕES DE MATERIAIS
-  function renderStep6Combinations() {
+  // -----------------------------------------------------------------------
+  // ETAPA 04/08 — COMBINAÇÕES DE MATERIAIS (múltipla escolha + compositor)
+  // -----------------------------------------------------------------------
+  function renderStep4Combinations() {
     const scores = computeAffinityScores(draft.selections);
     const ranked = getRankedCombinations(scores);
     const selected = draft.selections.combinations;
@@ -684,12 +706,9 @@
     return `
       <section class="stage-shell">
         <div class="stage-header">
-          <p class="eyebrow">Capítulo 06 · Combinações de Materiais</p>
-          <h1 class="stage-title">Que diálogo de matérias produz a sensação que você <em>procura?</em></h1>
-          <p class="stage-lead">
-            Ordenamos composições harmoniosas considerando suas escolhas anteriores — você pode selecionar suas favoritas ou experimentar sua própria tríade abaixo.
-          </p>
-          ${renderReflectionHtml(6)}
+          <p class="eyebrow">Etapa 04/08 · Combinações de Materiais</p>
+          <h1 class="stage-title">Quais composições produzem a sensação que você <em>procura?</em></h1>
+          <p class="stage-lead">Ordenamos sugestões com base nas suas escolhas anteriores. Selecione uma ou mais combinações.</p>
         </div>
 
         <div class="visual-grid">
@@ -711,9 +730,6 @@
                     <div class="swatch-bar">
                       ${cmb.swatches.map((hex) => `<span style="background:${hex}"></span>`).join('')}
                     </div>
-                    <div class="combo-tags">
-                      ${cmb.elements.map((el) => `<span class="combo-tag">${escapeHtml(el)}</span>`).join('')}
-                    </div>
                   </div>
                 </article>
               `;
@@ -722,16 +738,12 @@
         </div>
 
         <div class="composer-box">
-          <p class="eyebrow" style="margin-bottom:0.45rem;">Experimente combinar (opcional)</p>
-          <h2 style="font-family:var(--font-display);font-size:1.75rem;font-weight:400;">Monte sua própria tríade material</h2>
-          <p style="font-size:0.88rem;color:var(--ink-secondary);margin-top:0.35rem;">
-            Escolha uma base mineral, uma madeira e um detalhe tátil para registrar uma combinação personalizada no seu moodboard.
-          </p>
-
+          <p class="eyebrow" style="margin-bottom:0.4rem;">Opcional · Compositor</p>
+          <h2 style="font-family:var(--font-display);font-size:1.65rem;font-weight:400;">Ou monte sua própria tríade</h2>
           <div class="composer-grid">
             ${[
-              { key: 'stone', title: '1. Base Mineral / Pedra', items: DATA.composerSlots.stone },
-              { key: 'wood', title: '2. Madeira / Estrutura', items: DATA.composerSlots.wood },
+              { key: 'stone', title: '1. Pedra / Base', items: DATA.composerSlots.stone },
+              { key: 'wood', title: '2. Madeira', items: DATA.composerSlots.wood },
               { key: 'accent', title: '3. Têxtil & Metal', items: DATA.composerSlots.accent }
             ]
               .map(
@@ -755,7 +767,6 @@
               )
               .join('')}
           </div>
-
           ${
             stoneItem || woodItem || accentItem
               ? `
@@ -766,14 +777,11 @@
                   <span style="background:${woodItem ? woodItem.swatch : '#EFE9DF'}"></span>
                   <span style="background:${accentItem ? accentItem.swatch : '#EFE9DF'}"></span>
                 </div>
-                <div>
-                  <span class="choice-card__kicker">Tríade personalizada registrada</span>
-                  <p style="font-size:0.88rem;color:var(--ink-primary);">
-                    ${[stoneItem?.label, woodItem?.label, accentItem?.label].filter(Boolean).join(' + ')}
-                  </p>
-                </div>
+                <p style="font-size:0.88rem;color:var(--ink-primary);">
+                  ${[stoneItem?.label, woodItem?.label, accentItem?.label].filter(Boolean).join(' + ')}
+                </p>
               </div>
-              <button type="button" class="btn-link-subtle" id="clearComposerBtn">Limpar tríade</button>
+              <button type="button" class="btn-link-subtle" id="clearComposerBtn">Limpar</button>
             </div>
           `
               : ''
@@ -783,52 +791,41 @@
     `;
   }
 
-  // ETAPA 07 — ILUMINAÇÃO E ATMOSFERA
-  function renderStep7Lighting() {
+  // -----------------------------------------------------------------------
+  // ETAPA 05/08 — ILUMINAÇÃO E ATMOSFERA (1/2 Simulador, 2/2 Qualidades)
+  // -----------------------------------------------------------------------
+  function renderStep5LightingSimulator() {
     const activeScenario =
-      findById(DATA.lightingScenarios, draft.selections.lightingScenario) ||
-      DATA.lightingScenarios[0];
-    const baseScenario = DATA.lightingScenarios[0]; // Luz Natural Abundante como referência esquerda
+      findById(DATA.lightingScenarios, draft.selections.lightingScenario) || DATA.lightingScenarios[0];
+    const baseScenario = DATA.lightingScenarios[0];
     const split = ui.lightingCompareSplit;
 
     return `
       <section class="stage-shell">
         <div class="stage-header">
-          <p class="eyebrow">Capítulo 07 · Iluminação e Atmosfera</p>
-          <h1 class="stage-title">Como a luz deve <em>vestir</em> o seu espaço?</h1>
-          <p class="stage-lead">
-            Compare o mesmo ambiente preservando exatamente os mesmos materiais e geometria. Arraste o divisor na imagem para perceber como a temperatura e a direção da luz transformam a atmosfera.
-          </p>
-          ${renderReflectionHtml(7)}
+          <p class="eyebrow">Etapa 05/08 · Iluminação e Atmosfera (1/2)</p>
+          <h1 class="stage-title">Qual clima de luz mais combina com <em>você?</em></h1>
+          <p class="stage-lead">Compare o mesmo ambiente preservando materiais e geometria. Arraste o divisor na imagem.</p>
         </div>
 
         <div class="lighting-studio">
           <div>
             <div class="lighting-viewport" id="lightingViewport">
-              <!-- Camada direita: cenário selecionado -->
               <div class="lighting-layer">
-                <img src="assets/va-ref-01.webp" alt="Ambiente com ${escapeHtml(activeScenario.title)}" style="filter:${activeScenario.filter};" />
+                <img src="${DATA.lightingBaseImage}" alt="Ambiente com ${escapeHtml(activeScenario.title)}" style="filter:${activeScenario.filter};" />
                 <div class="lighting-layer__wash" style="background:${activeScenario.overlay};"></div>
               </div>
-
-              <!-- Camada esquerda (recortada pelo slider): luz natural de referência -->
               <div class="lighting-layer lighting-layer--compare" id="lightingCompareLayer" style="clip-path:inset(0 ${100 - split}% 0 0);">
-                <img src="assets/va-ref-01.webp" alt="Referência em luz natural abundante" style="filter:${baseScenario.filter};" />
+                <img src="${DATA.lightingBaseImage}" alt="Referência em luz natural" style="filter:${baseScenario.filter};" />
                 <div class="lighting-layer__wash" style="background:${baseScenario.overlay};"></div>
               </div>
-
               <span class="lighting-label lighting-label--left">Luz Natural · 5000K</span>
               <span class="lighting-label lighting-label--right">${escapeHtml(activeScenario.title)}</span>
-
               <div class="lighting-divider" id="lightingDivider" style="left:${split}%;">
                 <div class="lighting-divider__handle" aria-hidden="true">⇄</div>
               </div>
-
-              <input type="range" min="5" max="95" value="${split}" class="lighting-range" id="lightingRange" aria-label="Comparar luz natural com o cenário selecionado" />
+              <input type="range" min="5" max="95" value="${split}" class="lighting-range" id="lightingRange" aria-label="Comparar luz natural com cenário escolhido" />
             </div>
-            <p style="margin-top:0.65rem;font-size:0.78rem;color:var(--ink-muted);">
-              Arraste da esquerda para a direita sobre a fotografia para comparar a iluminação no mesmo espaço.
-            </p>
           </div>
 
           <div class="lighting-controls" role="radiogroup" aria-label="Cenários de iluminação">
@@ -847,219 +844,429 @@
               .join('')}
           </div>
         </div>
+      </section>
+    `;
+  }
 
-        <div class="sub-block">
-          <h2 class="sub-block__title">Quais qualidades de iluminação mais lhe agradam?</h2>
-          <div class="pill-grid">
-            ${DATA.lightingPreferences
-              .map((lp) => {
-                const isSel = draft.selections.lightingPreferences.includes(lp.id);
-                return `
-                  <button type="button" class="pill-tile ${isSel ? 'is-selected' : ''}" aria-pressed="${isSel}" data-select-type="lightingPreferences" data-id="${lp.id}">
-                    <div class="pill-tile__title">${escapeHtml(lp.title)}</div>
-                    <p class="pill-tile__desc">${escapeHtml(lp.desc)}</p>
-                  </button>
-                `;
-              })
-              .join('')}
-          </div>
+  function renderStep5LightingQualities() {
+    return `
+      <section class="checklist-shell">
+        <div class="checklist-header">
+          <p class="eyebrow">Etapa 05/08 · Iluminação e Atmosfera (2/2)</p>
+          <h1 class="checklist-prompt">Quais efeitos de luz você valoriza nos ambientes?</h1>
+          <p class="checklist-instruction">Marque o que se aplica</p>
+        </div>
+
+        <div class="checklist-list">
+          ${DATA.lightingPreferences
+            .map((lp) => {
+              const isSel = draft.selections.lightingPreferences.includes(lp.id);
+              return `
+                <button type="button" class="checklist-row ${isSel ? 'is-selected' : ''}" aria-pressed="${isSel}" data-select-type="lightingPreferences" data-id="${lp.id}">
+                  ${circleCheckHtml()}
+                  <span class="checklist-row__content">
+                    <span class="checklist-row__label">${escapeHtml(lp.title)}</span>
+                    <span style="font-size:0.82rem;color:var(--ink-muted);">${escapeHtml(lp.desc)}</span>
+                  </span>
+                </button>
+              `;
+            })
+            .join('')}
         </div>
       </section>
     `;
   }
 
-  // ETAPA 08 — PERSONALIDADE E FORMA DE VIVER
-  function renderStep8Living() {
-    const s = draft.selections;
+  // -----------------------------------------------------------------------
+  // ETAPA 06/08 — SEU JEITO DE VIVER (1/3 Sensações, 2/3 Descanso, 3/3 Especial)
+  // -----------------------------------------------------------------------
+  function renderStep6Feelings() {
+    return `
+      <section class="checklist-shell">
+        <div class="checklist-header">
+          <p class="eyebrow">Etapa 06/08 · Seu Jeito de Viver (1/3)</p>
+          <h1 class="checklist-prompt">Como você gostaria de se sentir ao chegar em casa?</h1>
+          <p class="checklist-instruction">Marque o que se aplica</p>
+        </div>
+
+        <div class="checklist-list">
+          ${DATA.homeFeelings
+            .map((f) => {
+              const isSel = draft.selections.homeFeelings.includes(f.id);
+              return `
+                <button type="button" class="checklist-row ${isSel ? 'is-selected' : ''}" aria-pressed="${isSel}" data-select-type="homeFeelings" data-id="${f.id}">
+                  ${circleCheckHtml()}
+                  <span class="checklist-row__content">
+                    <span class="checklist-row__label">${escapeHtml(f.title)}</span>
+                    <span style="font-size:0.82rem;color:var(--ink-muted);">${escapeHtml(f.desc)}</span>
+                  </span>
+                </button>
+              `;
+            })
+            .join('')}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderStep6RestSpaces() {
     return `
       <section class="stage-shell">
         <div class="stage-header">
-          <p class="eyebrow">Capítulo 08 · Personalidade e Forma de Viver</p>
-          <h1 class="stage-title">Como você gostaria de se sentir ao <em>chegar em casa?</em></h1>
-          <p class="stage-lead">
-            A estética ganha sentido quando acompanha o seu ritmo de vida. Escolha as sensações e os momentos que tornam um espaço realmente acolhedor para você.
-          </p>
+          <p class="eyebrow">Etapa 06/08 · Seu Jeito de Viver (2/3)</p>
+          <h1 class="stage-title">Qual espaço representa melhor o seu momento de <em>descanso?</em></h1>
+          <p class="stage-lead">Escolha a cena que mais se aproxima de como você gosta de desacelerar.</p>
         </div>
 
-        <div class="pill-grid">
-          ${DATA.homeFeelings
-            .map((f) => {
-              const isSel = s.homeFeelings.includes(f.id);
+        <div class="visual-grid visual-grid--2">
+          ${DATA.restSpaces
+            .map((rs) => {
+              const isSel = draft.selections.restSpace === rs.id;
               return `
-                <button type="button" class="pill-tile ${isSel ? 'is-selected' : ''}" aria-pressed="${isSel}" data-select-type="homeFeelings" data-id="${f.id}">
-                  <div class="pill-tile__title">${escapeHtml(f.title)}</div>
-                  <p class="pill-tile__desc">${escapeHtml(f.desc)}</p>
+                <article class="choice-card ${isSel ? 'is-selected' : ''}" tabindex="0" role="radio" aria-checked="${isSel}" data-rest-space="${rs.id}">
+                  <div class="choice-card__media">
+                    <img src="${rs.image}" alt="${escapeHtml(rs.title)}" loading="lazy" />
+                    ${checkMarkHtml()}
+                  </div>
+                  <div class="choice-card__body">
+                    <h2 class="choice-card__title">${escapeHtml(rs.title)}</h2>
+                    <p class="choice-card__desc">${escapeHtml(rs.desc)}</p>
+                  </div>
+                </article>
+              `;
+            })
+            .join('')}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderStep6SpecialElements() {
+    return `
+      <section class="checklist-shell">
+        <div class="checklist-header">
+          <p class="eyebrow">Etapa 06/08 · Seu Jeito de Viver (3/3)</p>
+          <h1 class="checklist-prompt">O que faz um ambiente ser especial para você?</h1>
+          <p class="checklist-instruction">Marque o que se aplica</p>
+        </div>
+
+        <div class="checklist-list">
+          ${DATA.specialElements
+            .map((el) => {
+              const isSel = draft.selections.specialElements.includes(el.id);
+              return `
+                <button type="button" class="checklist-row ${isSel ? 'is-selected' : ''}" aria-pressed="${isSel}" data-select-type="specialElements" data-id="${el.id}">
+                  ${circleCheckHtml()}
+                  <span class="checklist-row__label">${escapeHtml(el.label)}</span>
+                </button>
+              `;
+            })
+            .join('')}
+        </div>
+      </section>
+    `;
+  }
+
+  // -----------------------------------------------------------------------
+  // ETAPA 07/08 — SEU PROJETO (1/2 Tipo & Perfil, 2/2 Ambientes & Contexto)
+  // -----------------------------------------------------------------------
+  function renderStep7ProjectType() {
+    const p = draft.projectContext;
+    return `
+      <section class="checklist-shell">
+        <div class="checklist-header">
+          <p class="eyebrow">Etapa 07/08 · Seu Projeto (1/2)</p>
+          <h1 class="checklist-prompt">Qual é o tipo de projeto que você vai realizar?</h1>
+          <p class="checklist-instruction">Suas escolhas aqui definem apenas as perguntas realmente úteis na próxima etapa.</p>
+        </div>
+
+        <div class="checklist-list">
+          ${DATA.projectOptions.types
+            .map((t) => {
+              const isSel = p.projectType === t.id;
+              return `
+                <button type="button" class="checklist-row ${isSel ? 'is-selected' : ''}" role="radio" aria-checked="${isSel}" data-ctx-single="projectType" data-ctx-val="${escapeHtml(t.id)}">
+                  ${circleCheckHtml()}
+                  <span class="checklist-row__content">
+                    <span class="checklist-row__label">${escapeHtml(t.label)}</span>
+                    <span style="font-size:0.82rem;color:var(--ink-muted);">${escapeHtml(t.desc)}</span>
+                  </span>
                 </button>
               `;
             })
             .join('')}
         </div>
 
-        <div class="sub-block">
-          <h2 class="sub-block__title">Qual destes espaços representa melhor o seu momento de descanso?</h2>
-          <div class="visual-grid visual-grid--4">
-            ${DATA.restSpaces
-              .map((rs) => {
-                const isSel = s.restSpace === rs.id;
-                return `
-                  <article class="choice-card ${isSel ? 'is-selected' : ''}" tabindex="0" role="radio" aria-checked="${isSel}" data-rest-space="${rs.id}">
-                    <div class="choice-card__media">
-                      <img src="${rs.image}" alt="${escapeHtml(rs.title)}" loading="lazy" />
-                      ${checkMarkHtml()}
-                    </div>
-                    <div class="choice-card__body">
-                      <h3 class="choice-card__title" style="font-size:1.22rem;">${escapeHtml(rs.title)}</h3>
-                      <p class="choice-card__desc">${escapeHtml(rs.desc)}</p>
-                    </div>
-                  </article>
-                `;
-              })
+        <div style="margin-top:1.75rem;">
+          <span class="field-label" style="display:block;margin-bottom:0.65rem;">Natureza do imóvel</span>
+          <div class="chip-wrap">
+            ${DATA.projectOptions.categories
+              .map(
+                (cat) => `
+              <button type="button" class="chip-btn ${p.propertyCategory === cat.id ? 'is-selected' : ''}" data-ctx-single="propertyCategory" data-ctx-val="${escapeHtml(cat.id)}">${escapeHtml(cat.label)}</button>
+            `
+              )
               .join('')}
           </div>
         </div>
 
-        <div class="sub-block">
-          <h2 class="sub-block__title">O que faz um ambiente ser especial para você?</h2>
-          <div class="chip-wrap">
-            ${DATA.specialElements
-              .map((el) => {
-                const isSel = s.specialElements.includes(el.id);
-                return `
-                  <button type="button" class="chip-btn ${isSel ? 'is-selected' : ''}" aria-pressed="${isSel}" data-select-type="specialElements" data-id="${el.id}">
-                    ${escapeHtml(el.label)}
-                  </button>
-                `;
-              })
+        ${
+          p.projectType === 'Interiores'
+            ? `
+          <div style="margin-top:1.5rem;">
+            <span class="field-label" style="display:block;margin-bottom:0.65rem;">Situação atual do imóvel</span>
+            <div class="chip-wrap">
+              ${DATA.projectOptions.interiorStatuses
+                .map(
+                  (st) => `
+                <button type="button" class="chip-btn ${p.interiorStatus === st.id ? 'is-selected' : ''}" data-ctx-single="interiorStatus" data-ctx-val="${escapeHtml(st.id)}">${escapeHtml(st.label)}</button>
+              `
+                )
+                .join('')}
+            </div>
+          </div>
+        `
+            : ''
+        }
+
+        ${
+          p.propertyCategory === 'Comercial'
+            ? `
+          <div style="margin-top:1.5rem;">
+            <span class="field-label" style="display:block;margin-bottom:0.65rem;">Atividade do estabelecimento</span>
+            <div class="chip-wrap">
+              ${DATA.projectOptions.commercialSegments
+                .map(
+                  (seg) => `
+                <button type="button" class="chip-btn ${p.commercialSegment === seg.id ? 'is-selected' : ''}" data-ctx-single="commercialSegment" data-ctx-val="${escapeHtml(seg.id)}">${escapeHtml(seg.label)}</button>
+              `
+                )
+                .join('')}
+            </div>
+          </div>
+        `
+            : ''
+        }
+      </section>
+    `;
+  }
+
+  function renderStep7ProjectRooms() {
+    const p = draft.projectContext;
+    const isCommercial = p.propertyCategory === 'Comercial';
+
+    return `
+      <section class="checklist-shell">
+        <div class="checklist-header">
+          <p class="eyebrow">Etapa 07/08 · Seu Projeto (2/2)</p>
+          <h1 class="checklist-prompt">${
+            isCommercial ? 'Localização e prazo do espaço comercial' : 'Quais ambientes farão parte do projeto?'
+          }</h1>
+          <p class="checklist-instruction">${
+            isCommercial
+              ? 'Informe o contexto básico para direcionarmos o levantamento comercial.'
+              : 'Exibiremos perguntas apenas sobre os ambientes que você marcar abaixo.'
+          }</p>
+        </div>
+
+        ${
+          !isCommercial
+            ? `
+          <div class="chip-wrap" style="margin-bottom:1.75rem;">
+            ${DATA.projectOptions.rooms
+              .map(
+                (rm) => `
+              <button type="button" class="chip-btn ${p.rooms.includes(rm.id) ? 'is-selected' : ''}" data-ctx-room="${rm.id}">${escapeHtml(rm.label)}</button>
+            `
+              )
               .join('')}
+          </div>
+
+          <div style="margin-bottom:1.75rem;">
+            <span class="field-label" style="display:block;margin-bottom:0.65rem;">Situações específicas do dia a dia <span class="field-optional">(opcional)</span></span>
+            <div class="chip-wrap">
+              ${DATA.projectOptions.contextFlags
+                .map(
+                  (fl) => `
+                <button type="button" class="chip-btn ${p.contextFlags.includes(fl.id) ? 'is-selected' : ''}" data-ctx-flag="${fl.id}">${escapeHtml(fl.label)}</button>
+              `
+                )
+                .join('')}
+            </div>
+          </div>
+        `
+            : ''
+        }
+
+        <div class="form-grid">
+          <div class="field-group">
+            <label class="field-label" for="ctxCity">Cidade e bairro <span class="field-optional">(opcional)</span></label>
+            <input class="field-input" id="ctxCity" type="text" placeholder="Ex: São Paulo, Jardins" value="${escapeHtml(p.city)}" data-ctx-input="city" />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="ctxTimeline">Prazo previsto <span class="field-optional">(opcional)</span></label>
+            <select class="field-select" id="ctxTimeline" data-ctx-input="timeline">
+              <option value="">Selecione se já tiver previsão</option>
+              ${DATA.projectOptions.timelines
+                .map((tl) => `<option value="${escapeHtml(tl)}" ${p.timeline === tl ? 'selected' : ''}>${escapeHtml(tl)}</option>`)
+                .join('')}
+            </select>
           </div>
         </div>
       </section>
     `;
   }
 
-  // ETAPA 09 — CONTEXTO DO PROJETO + CONTATO CONTEXTUALIZADO + LGPD
-  function renderStep9ProjectContext() {
-    const p = draft.projectContext;
-    const c = draft.client;
+  // -----------------------------------------------------------------------
+  // FASE 2 — ETAPA 08/08: CHECKLIST INTELIGENTE (1 PERGUNTA POR TELA)
+  // -----------------------------------------------------------------------
+  function renderChecklistQuestion(question, subIdx, totalSubs) {
+    // Registra pergunta exibida no cadastro estruturado
+    if (!draft.checklist.displayedQuestionIds.includes(question.id)) {
+      draft.checklist.displayedQuestionIds.push(question.id);
+      persist();
+    }
+
+    const selectedIds = draft.checklist.answers[question.id] || [];
+    const regularOpts = question.options.filter((o) => !o.exclusive);
+    const exclusiveOpts = question.options.filter((o) => o.exclusive);
+
+    const isExpanded = Boolean(ui.expandedChecklistQuestions[question.id]);
+    const MAX_VISIBLE = 5;
+    const hasOverflow = regularOpts.length > MAX_VISIBLE;
+    const visibleRegular = hasOverflow && !isExpanded ? regularOpts.slice(0, MAX_VISIBLE) : regularOpts;
+    const hiddenCount = regularOpts.length - visibleRegular.length;
 
     return `
-      <section class="stage-shell">
-        <div class="stage-header">
-          <p class="eyebrow">Capítulo 09 · Contexto do Projeto</p>
-          <h1 class="stage-title">Conte brevemente sobre o <em>espaço</em> que você imagina</h1>
-          <p class="stage-lead">
-            Apenas o essencial para conectar sua descoberta estética à realidade do projeto. Campos complementares são totalmente opcionais.
-          </p>
+      <section class="checklist-shell">
+        <div class="checklist-header">
+          <p class="eyebrow">Etapa 08/08 · ${escapeHtml(question.category)}</p>
+          <h1 class="checklist-prompt">${escapeHtml(question.prompt)}</h1>
+          <p class="checklist-instruction">${escapeHtml(question.instruction)}</p>
+        </div>
+
+        <div class="checklist-list" role="${question.mode === 'single' ? 'radiogroup' : 'group'}" aria-label="${escapeHtml(question.prompt)}">
+          ${visibleRegular
+            .map((opt) => {
+              const isSel = selectedIds.includes(opt.id);
+              return `
+                <button type="button" class="checklist-row ${isSel ? 'is-selected' : ''}" role="${question.mode === 'single' ? 'radio' : 'checkbox'}" aria-checked="${isSel}" data-chk-q="${question.id}" data-chk-opt="${opt.id}">
+                  ${circleCheckHtml()}
+                  <span class="checklist-row__label">${escapeHtml(opt.label)}</span>
+                </button>
+              `;
+            })
+            .join('')}
+
+          ${
+            hasOverflow && !isExpanded
+              ? `
+            <div>
+              <button type="button" class="checklist-more-btn" data-expand-q="${question.id}">
+                Ver outras opções (+${hiddenCount})
+              </button>
+            </div>
+          `
+              : ''
+          }
+
+          ${
+            exclusiveOpts.length
+              ? `
+            <div class="checklist-divider" aria-hidden="true"></div>
+            ${exclusiveOpts
+              .map((opt) => {
+                const isSel = selectedIds.includes(opt.id);
+                return `
+                  <button type="button" class="checklist-row ${isSel ? 'is-selected' : ''}" role="checkbox" aria-checked="${isSel}" data-chk-q="${question.id}" data-chk-opt="${opt.id}">
+                    ${circleCheckHtml()}
+                    <span class="checklist-row__label">${escapeHtml(opt.label)}</span>
+                  </button>
+                `;
+              })
+              .join('')}
+          `
+              : ''
+          }
+        </div>
+      </section>
+    `;
+  }
+
+  // PRIORIDADES — "O que é mais importante resolver?" (até 3)
+  function renderChecklistPriorities(markedNeeds) {
+    const validIds = new Set(markedNeeds.map((n) => n.id));
+    draft.checklist.priorities = (draft.checklist.priorities || []).filter((id) => validIds.has(id));
+    const prios = draft.checklist.priorities;
+
+    return `
+      <section class="checklist-shell">
+        <div class="checklist-header">
+          <p class="eyebrow">Etapa 08/08 · Prioridades</p>
+          <h1 class="checklist-prompt">O que é mais importante resolver?</h1>
+          <p class="checklist-instruction">Destaque até 3 prioridades entre as necessidades que você marcou.</p>
+        </div>
+
+        <div class="priority-counter">${prios.length} / 3 prioridades destacadas</div>
+
+        <div class="checklist-list">
+          ${markedNeeds
+            .map((need) => {
+              const rankIdx = prios.indexOf(need.id);
+              const isSel = rankIdx >= 0;
+              const isBlocked = !isSel && prios.length >= 3;
+              return `
+                <button type="button" class="checklist-row ${isSel ? 'is-selected' : ''} ${isBlocked ? 'is-disabled' : ''}" aria-pressed="${isSel}" data-prio-id="${escapeHtml(need.id)}">
+                  ${isSel ? `<span class="priority-badge-num">${rankIdx + 1}</span>` : circleCheckHtml()}
+                  <span class="checklist-row__content">
+                    <span class="checklist-row__tag">${escapeHtml(need.category)}</span>
+                    <span class="checklist-row__label">${escapeHtml(need.label)}</span>
+                  </span>
+                </button>
+              `;
+            })
+            .join('')}
+        </div>
+      </section>
+    `;
+  }
+
+  // CONTATO FINAL + OBSERVAÇÕES + LGPD (antes do resumo final)
+  function renderStep8Contact() {
+    const c = draft.client;
+    return `
+      <section class="checklist-shell">
+        <div class="checklist-header">
+          <p class="eyebrow">Etapa 08/08 · Últimos Detalhes</p>
+          <h1 class="checklist-prompt">Deseja acrescentar alguma observação antes do seu resumo?</h1>
+          <p class="checklist-instruction">Se quiser enviar seu perfil para a equipe da Vidart, preencha seu contato abaixo.</p>
         </div>
 
         <div class="form-card">
           <div class="field-group">
-            <span class="field-label">Tipo de projeto</span>
-            <div class="chip-wrap">
-              ${DATA.projectOptions.types
-                .map(
-                  (t) => `
-                <button type="button" class="chip-btn ${p.projectType === t ? 'is-selected' : ''}" data-ctx-single="projectType" data-ctx-val="${escapeHtml(t)}">${escapeHtml(t)}</button>
-              `
-                )
-                .join('')}
-            </div>
-          </div>
-
-          <div class="field-group">
-            <span class="field-label">Natureza do imóvel</span>
-            <div class="chip-wrap">
-              ${DATA.projectOptions.categories
-                .map(
-                  (cat) => `
-                <button type="button" class="chip-btn ${p.propertyCategory === cat ? 'is-selected' : ''}" data-ctx-single="propertyCategory" data-ctx-val="${escapeHtml(cat)}">${escapeHtml(cat)}</button>
-              `
-                )
-                .join('')}
-            </div>
-          </div>
-
-          <div class="field-group">
-            <span class="field-label">Ambientes de interesse <span class="field-optional">(selecione um ou mais)</span></span>
-            <div class="chip-wrap">
-              ${DATA.projectOptions.rooms
-                .map(
-                  (rm) => `
-                <button type="button" class="chip-btn ${p.rooms.includes(rm) ? 'is-selected' : ''}" data-ctx-room="${escapeHtml(rm)}">${escapeHtml(rm)}</button>
-              `
-                )
-                .join('')}
-            </div>
+            <label class="field-label" for="chkNotes">Observações adicionais <span class="field-optional">(opcional)</span></label>
+            <textarea class="field-textarea" id="chkNotes" placeholder="Algum detalhe importante da rotina, restrição do imóvel ou referência extra...">${escapeHtml(draft.checklist.notes || '')}</textarea>
           </div>
 
           <div class="form-grid">
             <div class="field-group">
-              <label class="field-label" for="ctxCity">Cidade e localização</label>
-              <input class="field-input" id="ctxCity" type="text" placeholder="Ex: São Paulo, Jardins" value="${escapeHtml(p.city)}" data-ctx-input="city" />
+              <label class="field-label" for="clientName">Seu nome</label>
+              <input class="field-input" id="clientName" type="text" placeholder="Como podemos lhe chamar?" value="${escapeHtml(c.name)}" data-client-input="name" />
             </div>
-
             <div class="field-group">
-              <label class="field-label" for="ctxTimeline">Prazo desejado <span class="field-optional">(opcional)</span></label>
-              <select class="field-select" id="ctxTimeline" data-ctx-input="timeline">
-                <option value="">Selecione se já tiver previsão</option>
-                ${DATA.projectOptions.timelines
-                  .map(
-                    (tl) => `<option value="${escapeHtml(tl)}" ${p.timeline === tl ? 'selected' : ''}>${escapeHtml(tl)}</option>`
-                  )
-                  .join('')}
-              </select>
+              <label class="field-label" for="clientPhone">WhatsApp ou telefone <span class="field-optional">(opcional)</span></label>
+              <input class="field-input" id="clientPhone" type="tel" placeholder="(00) 00000-0000" value="${escapeHtml(c.phone)}" data-client-input="phone" />
             </div>
-
             <div class="field-group field-group--full">
-              <label class="field-label" for="ctxInvestment">Direcionamento de especificação e investimento <span class="field-optional">(discreto e opcional)</span></label>
-              <select class="field-select" id="ctxInvestment" data-ctx-input="investmentRange">
-                <option value="">Prefiro deixar em aberto por enquanto</option>
-                ${DATA.projectOptions.investmentRanges
-                  .map(
-                    (inv) => `<option value="${escapeHtml(inv)}" ${p.investmentRange === inv ? 'selected' : ''}>${escapeHtml(inv)}</option>`
-                  )
-                  .join('')}
-              </select>
-            </div>
-
-            <div class="field-group">
-              <label class="field-label" for="ctxNeeds">Principais necessidades e prioridades <span class="field-optional">(opcional)</span></label>
-              <textarea class="field-textarea" id="ctxNeeds" placeholder="O que precisa funcionar melhor no dia a dia?" data-ctx-input="needs">${escapeHtml(p.needs)}</textarea>
-            </div>
-
-            <div class="field-group">
-              <label class="field-label" for="ctxRestrictions">Restrições ou referências adicionais <span class="field-optional">(opcional)</span></label>
-              <textarea class="field-textarea" id="ctxRestrictions" placeholder="Algo que prefere evitar, peças existentes ou links de referência..." data-ctx-input="restrictions">${escapeHtml(p.restrictions)}</textarea>
-            </div>
-          </div>
-
-          <hr style="border:none;border-top:1px solid var(--hairline);margin-block:0.4rem;" />
-
-          <div>
-            <p class="eyebrow" style="margin-bottom:0.4rem;">Para preparar sua síntese</p>
-            <p style="font-size:0.86rem;color:var(--ink-secondary);margin-bottom:1rem;">
-              Informe seus dados apenas se desejar compartilhar este perfil com a equipe da VA Arquitetura e Interiores.
-            </p>
-            <div class="form-grid">
-              <div class="field-group">
-                <label class="field-label" for="clientName">Seu nome</label>
-                <input class="field-input" id="clientName" type="text" placeholder="Como podemos lhe chamar?" value="${escapeHtml(c.name)}" data-client-input="name" />
-              </div>
-              <div class="field-group">
-                <label class="field-label" for="clientPhone">WhatsApp ou telefone <span class="field-optional">(opcional)</span></label>
-                <input class="field-input" id="clientPhone" type="tel" placeholder="(00) 00000-0000" value="${escapeHtml(c.phone)}" data-client-input="phone" />
-              </div>
-              <div class="field-group field-group--full">
-                <label class="field-label" for="clientEmail">E-mail <span class="field-optional">(opcional)</span></label>
-                <input class="field-input" id="clientEmail" type="email" placeholder="voce@exemplo.com" value="${escapeHtml(c.email)}" data-client-input="email" />
-              </div>
+              <label class="field-label" for="clientEmail">E-mail <span class="field-optional">(opcional)</span></label>
+              <input class="field-input" id="clientEmail" type="email" placeholder="voce@exemplo.com" value="${escapeHtml(c.email)}" data-client-input="email" />
             </div>
           </div>
 
           <label class="lgpd-box">
             <input type="checkbox" id="lgpdConsentCheck" ${c.lgpdConsent ? 'checked' : ''} />
             <span class="lgpd-box__text">
-              <strong>Privacidade e LGPD:</strong> Concordo que a <strong>VA Arquitetura e Interiores</strong> armazene minhas preferências estéticas e dados de contato exclusivamente para a elaboração do briefing e atendimento do meu projeto. Posso solicitar a atualização ou exclusão destas informações a qualquer momento.
+              <strong>Privacidade e LGPD:</strong> Concordo que a <strong>VA Arquitetura e Interiores</strong> armazene minhas preferências estéticas, necessidades levantadas e dados de contato exclusivamente para elaboração do briefing do meu projeto. Posso atualizar ou excluir meus dados a qualquer momento.
             </span>
           </label>
         </div>
@@ -1067,55 +1274,44 @@
     `;
   }
 
-  // ETAPA 10 — SUA IDENTIDADE ESTÉTICA (REVELAÇÃO GRATIFICANTE & PAINEL EDITÁVEL)
-  function renderStep10Reveal() {
+  // -----------------------------------------------------------------------
+  // TELA FINAL — IDENTIDADE ESTÉTICA + RESUMO COMPLETO DO CHECKLIST + EDITAR
+  // -----------------------------------------------------------------------
+  function renderStep8Reveal() {
     const s = draft.selections;
     const p = draft.projectContext;
     const c = draft.client;
     const synthesis = buildAestheticSynthesis();
     const compass = computeAestheticCompass(s);
+    const chkSummary = buildChecklistSummary();
 
     const firstName = (c.name || '').trim().split(/\s+/)[0];
     const greetingTitle = firstName
-      ? `${escapeHtml(firstName)}, descobrimos um pouco do que faz um espaço ser seu.`
-      : 'Descobrimos um pouco do que faz um espaço ser seu.';
+      ? `${escapeHtml(firstName)}, aqui está a síntese do seu olhar e do seu projeto.`
+      : 'Aqui está a síntese do seu olhar e do seu projeto.';
 
     const chosenEnvs = s.environments.map((id) => findById(DATA.environments, id)).filter(Boolean);
     const chosenStyles = s.styles.map((id) => findById(DATA.styles, id)).filter(Boolean);
     const chosenPalettes = s.palettes.map((id) => findById(DATA.palettes, id)).filter(Boolean);
     const chosenMaterials = s.materials.map((id) => findById(DATA.materials, id)).filter(Boolean);
     const chosenCombos = s.combinations.map((id) => findById(DATA.combinations, id)).filter(Boolean);
-    const chosenLighting = s.lightingPreferences.map((id) => findById(DATA.lightingPreferences, id)).filter(Boolean);
     const activeScenario = findById(DATA.lightingScenarios, s.lightingScenario) || DATA.lightingScenarios[0];
     const chosenFeelings = s.homeFeelings.map((id) => findById(DATA.homeFeelings, id)).filter(Boolean);
-    const chosenRest = findById(DATA.restSpaces, s.restSpace);
-    const chosenSpecials = s.specialElements.map((id) => findById(DATA.specialElements, id)).filter(Boolean);
+    const roomLabels = (p.rooms || []).map((rid) => findById(DATA.projectOptions.rooms, rid)?.label || rid);
 
-    const custom = s.customCombination;
-    const customParts = [
-      findById(DATA.composerSlots.stone, custom.stone),
-      findById(DATA.composerSlots.wood, custom.wood),
-      findById(DATA.composerSlots.accent, custom.accent)
-    ].filter(Boolean);
-
-    // Galeria visual real para o Moodboard
     const visualRefs = [];
-    chosenEnvs.forEach((item) => visualRefs.push({ image: item.image, caption: item.title, desc: item.subtitle }));
-    chosenStyles.forEach((item) => {
-      if (!visualRefs.some((v) => v.image === item.image)) {
-        visualRefs.push({ image: item.image, caption: `Estilo ${item.title}`, desc: item.desc });
-      }
+    chosenEnvs.forEach((it) => visualRefs.push({ image: it.image, caption: it.title, desc: it.subtitle }));
+    chosenStyles.forEach((it) => {
+      if (!visualRefs.some((v) => v.image === it.image)) visualRefs.push({ image: it.image, caption: it.title, desc: it.desc });
     });
-    chosenMaterials.forEach((item) => {
-      if (!visualRefs.some((v) => v.image === item.sampleImage)) {
-        visualRefs.push({ image: item.sampleImage, caption: item.title, desc: item.desc });
-      }
+    chosenMaterials.forEach((it) => {
+      if (!visualRefs.some((v) => v.image === it.image)) visualRefs.push({ image: it.image, caption: it.title, desc: it.desc });
     });
-    if (visualRefs.length === 0) {
+    if (!visualRefs.length) {
       visualRefs.push(
-        { image: 'assets/va-ref-01.webp', caption: 'Atmosfera Mineral', desc: 'Equilíbrio entre textura mineral e luz natural.' },
-        { image: 'assets/va-ref-08.webp', caption: 'Curadoria Material', desc: 'Pedra natural, madeira e metais escovados.' },
-        { image: 'assets/va-ref-04.webp', caption: 'Proporção e Luz', desc: 'Arquitetura serena e acolhedora.' }
+        { image: DATA.welcomeHeroImage, caption: 'Atmosfera Mineral', desc: 'Equilíbrio entre textura mineral e luz natural.' },
+        { image: 'assets/va-ref-08.webp', caption: 'Curadoria Material', desc: 'Pedra natural, madeira e metal escovado.' },
+        { image: DATA.lightingBaseImage, caption: 'Proporção e Luz', desc: 'Arquitetura serena e acolhedora.' }
       );
     }
 
@@ -1126,63 +1322,19 @@
       </svg>
     `;
 
-    // Explicações curatoriais personalizadas para cada bloco
-    const envInsight = chosenEnvs.length
-      ? `Sua escolha por ${chosenEnvs.map((e) => e.atmosphere.toLowerCase()).slice(0, 2).join(' e ')} mostra que você busca espaços onde a proporção e a atmosfera acolhem logo no primeiro olhar.`
-      : 'Você ainda não selecionou ambientes de conexão — clique em editar para explorar espaços de referência.';
-
-    const styleInsight =
-      chosenStyles.length >= 2
-        ? `Misturar ${chosenStyles.slice(0, 3).map((x) => x.title).join(' com ')} revela um gosto autoral e sofisticado: você valoriza o melhor de cada linguagem sem se prender a fórmulas prontas.`
-        : chosenStyles.length === 1
-          ? `A identificação com o estilo ${chosenStyles[0].title} traz clareza de direção, servindo como base para detalhes personalizados ao seu ritmo de vida.`
-          : 'Ainda em aberto — você pode selecionar uma ou mais linguagens para enriquecer sua leitura estética.';
-
-    const paletteInsight = chosenPalettes.length
-      ? `Cores em torno de ${chosenPalettes.map((x) => x.feeling.toLowerCase()).slice(0, 2).join(' e ')} constroem a temperatura emocional da casa, influenciando diretamente o bem-estar diário.`
-      : 'Selecione uma paleta para visualizar como as cores moldam a sensação dos seus espaços.';
-
-    const matInsight = chosenMaterials.length
-      ? `A preferência por ${chosenMaterials.slice(0, 3).map((m) => m.title.toLowerCase()).join(', ')} indica sensibilidade tátil: superfícies autênticas que envelhecem bem e trazem verdade ao toque.`
-      : 'Explore madeiras, pedras, tecidos e acabamentos para definir a textura do seu projeto.';
-
-    const comboInsight =
-      chosenCombos.length || customParts.length
-        ? 'Essas combinações já estabelecem um vocabulário material coerente entre piso, marcenaria, pedras e detalhes — prontas para guiar a especificação real.'
-        : 'Você pode escolher uma composição pronta ou montar sua tríade personalizada de pedra, madeira e metal.';
-
-    const lightInsight = `O cenário "${activeScenario.title}" (${activeScenario.kelvin}) ${
-      chosenLighting.length
-        ? `somado a ${chosenLighting.slice(0, 2).map((l) => l.title.toLowerCase()).join(' e ')}`
-        : ''
-    } orienta como a luz vai esculpir volumes, valorizar texturas e acompanhar os diferentes momentos do seu dia.`;
-
-    const livingInsight = chosenFeelings.length
-      ? `Acima da estética, o espaço precisa entregar ${chosenFeelings.slice(0, 3).map((f) => f.title.toLowerCase()).join(', ')} — esse é o verdadeiro ponto de partida de um projeto sob medida.`
-      : 'Conte como você deseja se sentir em casa para conectarmos a estética à sua rotina.';
-
-    const projectSummaryParts = [
-      p.projectType,
-      p.propertyCategory,
-      p.city,
-      p.timeline,
-      p.investmentRange
-    ].filter(Boolean);
-
     const isSubmitted = Boolean(draft.submittedRecordId);
 
     return `
       <section class="stage-shell">
-        <!-- 1. HERO DE REVELAÇÃO + BÚSSOLA DO SEU OLHAR -->
+        <!-- 1. HERO + BÚSSOLA -->
         <div class="reveal-hero reveal-stagger-1">
           <svg class="reveal-hero__arc" viewBox="0 0 360 360" fill="none" aria-hidden="true">
             <path d="M30 340C30 168.792 168.792 30 340 30" stroke="#C6A982" stroke-width="1.2" />
             <path d="M95 340C95 204.69 204.69 95 340 95" stroke="#F4EFE6" stroke-width="0.8" stroke-opacity="0.35" />
           </svg>
-
           <div class="reveal-hero__grid">
             <div>
-              <p class="eyebrow">Sua Identidade Estética · VA Arquitetura e Interiores</p>
+              <p class="eyebrow">Etapa 08/08 · Identidade Estética & Briefing</p>
               <h1 class="reveal-hero__title">${greetingTitle}</h1>
               <p class="reveal-hero__synthesis">${escapeHtml(synthesis.narrative)}</p>
               <div class="reveal-tags">
@@ -1190,8 +1342,7 @@
                 ${synthesis.tags.map((t) => `<span class="reveal-tag">${escapeHtml(t)}</span>`).join('')}
               </div>
             </div>
-
-            <div class="reveal-compass" aria-label="Bússola estética baseada nas suas escolhas">
+            <div class="reveal-compass">
               <span class="reveal-compass__head">Bússola do Seu Olhar</span>
               ${compass
                 .map(
@@ -1213,16 +1364,108 @@
           </div>
         </div>
 
-        <!-- 2. MOODBOARD VISUAL INTERATIVO -->
-        <div class="moodboard-panel reveal-stagger-2">
-          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:0.75rem;margin-bottom:1rem;">
-            <div>
-              <span class="choice-card__kicker">Curadoria Visual</span>
-              <h2 class="moodboard-panel__title" style="margin-bottom:0;">Seu Moodboard Personalizado</h2>
-            </div>
-            <span style="font-size:0.78rem;color:var(--ink-muted);">Toque em qualquer imagem para ampliar</span>
+        <!-- 2. RESUMO DO LEVANTAMENTO DE NECESSIDADES (FASE 2) -->
+        <div class="reveal-section-head reveal-stagger-2">
+          <div>
+            <p class="eyebrow" style="margin-bottom:0.3rem;">Levantamento Funcional</p>
+            <h2 class="reveal-section-head__title">Resumo de Necessidades & Prioridades</h2>
           </div>
+          <button type="button" class="btn-edit-inline no-print" data-edit-target="8:0">${editIcon}<span>Revisar checklist</span></button>
+        </div>
 
+        <div class="needs-summary-grid reveal-stagger-2">
+          <article class="editable-card">
+            <div class="editable-card__top">
+              <div>
+                <span class="choice-card__kicker">Escopo</span>
+                <h3 class="editable-card__title">Projeto e Ambientes</h3>
+              </div>
+              <button type="button" class="btn-edit-inline no-print" data-edit-target="7:0">${editIcon}<span>Editar</span></button>
+            </div>
+            <div class="editable-card__thumbs">
+              ${[p.projectType, p.propertyCategory, p.city, p.timeline].filter(Boolean).map((x) => `<span class="combo-tag">${escapeHtml(x)}</span>`).join('') || '<span class="combo-tag">Não informado</span>'}
+              ${roomLabels.map((rm) => `<span class="combo-tag" style="background:var(--bronze-soft);color:var(--bronze-dark);">${escapeHtml(rm)}</span>`).join('')}
+            </div>
+          </article>
+
+          <article class="editable-card">
+            <div class="editable-card__top">
+              <div>
+                <span class="choice-card__kicker">Foco Principal</span>
+                <h3 class="editable-card__title">As 3 Prioridades</h3>
+              </div>
+            </div>
+            ${
+              chkSummary.topPriorities.length
+                ? `
+              <ul class="needs-room-list">
+                ${chkSummary.topPriorities.map((pr, idx) => `<li><strong>#${idx + 1} (${escapeHtml(pr.category)}):</strong> ${escapeHtml(pr.label)}</li>`).join('')}
+              </ul>
+            `
+                : '<p style="font-size:0.86rem;color:var(--ink-muted);">Nenhuma prioridade destacada.</p>'
+            }
+          </article>
+
+          ${chkSummary.byRoom
+            .map(
+              (grp) => `
+            <article class="editable-card">
+              <div>
+                <span class="choice-card__kicker">${grp.kind === 'problem' ? 'Pontos atuais' : 'Usos previstos'}</span>
+                <h3 class="editable-card__title">${escapeHtml(grp.category)}</h3>
+              </div>
+              <ul class="needs-room-list">
+                ${grp.items.map((txt) => `<li>${escapeHtml(txt)}</li>`).join('')}
+              </ul>
+            </article>
+          `
+            )
+            .join('')}
+
+          ${
+            chkSummary.preserve.length
+              ? `
+            <article class="editable-card">
+              <div>
+                <span class="choice-card__kicker">Imóvel Existente</span>
+                <h3 class="editable-card__title">Elementos a Preservar</h3>
+              </div>
+              <div class="editable-card__thumbs">
+                ${chkSummary.preserve.map((it) => `<span class="combo-tag">${escapeHtml(it)}</span>`).join('')}
+              </div>
+            </article>
+          `
+              : ''
+          }
+
+          ${
+            draft.checklist.notes
+              ? `
+            <article class="editable-card">
+              <div class="editable-card__top">
+                <div>
+                  <span class="choice-card__kicker">Observações</span>
+                  <h3 class="editable-card__title">Notas Adicionais</h3>
+                </div>
+                <button type="button" class="btn-edit-inline no-print" data-edit-target="8:contact">${editIcon}<span>Editar</span></button>
+              </div>
+              <p style="font-size:0.88rem;color:var(--ink-secondary);">${escapeHtml(draft.checklist.notes)}</p>
+            </article>
+          `
+              : ''
+          }
+        </div>
+
+        <!-- 3. MOODBOARD VISUAL + ESCOLHAS ESTÉTICAS EDITÁVEIS -->
+        <div class="reveal-section-head reveal-stagger-3">
+          <div>
+            <p class="eyebrow" style="margin-bottom:0.3rem;">Curadoria Estética</p>
+            <h2 class="reveal-section-head__title">Seu Moodboard & Escolhas Estéticas</h2>
+          </div>
+          <span style="font-size:0.8rem;color:var(--ink-muted);">Clique em Editar para ajustar qualquer preferência</span>
+        </div>
+
+        <div class="moodboard-panel reveal-stagger-3" style="margin-bottom:1.25rem;">
           <div class="moodboard-collage">
             ${visualRefs
               .slice(0, 5)
@@ -1236,262 +1479,79 @@
               )
               .join('')}
           </div>
-
-          ${
-            chosenPalettes.length
-              ? `
-            <div style="margin-top:1.35rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;">
-              ${chosenPalettes
-                .map(
-                  (pal) => `
-                <div>
-                  <span style="font-size:0.8rem;color:var(--ink-secondary);">${escapeHtml(pal.title)} · <em>${escapeHtml(pal.feeling)}</em></span>
-                  <div class="swatch-bar">
-                    ${pal.colors.map((hex) => `<span style="background:${hex}" title="${hex}"></span>`).join('')}
-                  </div>
-                </div>
-              `
-                )
-                .join('')}
-            </div>
-          `
-              : ''
-          }
-        </div>
-
-        <!-- 3. PAINEL COMPLETO DE TODAS AS ESCOLHAS + EXPLICAÇÃO + EDITAR -->
-        <div class="reveal-section-head reveal-stagger-3">
-          <div>
-            <p class="eyebrow" style="margin-bottom:0.35rem;">Leitura Detalhada & Controle Total</p>
-            <h2 class="reveal-section-head__title">Todas as suas escolhas — edite o que quiser</h2>
-          </div>
-          <p class="reveal-section-head__sub">Ao alterar qualquer etapa, seu moodboard e sua leitura se atualizam na hora.</p>
         </div>
 
         <div class="editable-choices-grid reveal-stagger-3">
-          <!-- Bloco 02: Ambientes -->
           <article class="editable-card">
             <div class="editable-card__top">
-              <div>
-                <span class="choice-card__kicker">Capítulo 02</span>
-                <h3 class="editable-card__title">Ambientes de Conexão</h3>
-              </div>
-              <button type="button" class="btn-edit-inline no-print" data-edit-step="2">${editIcon}<span>Editar</span></button>
+              <div><span class="choice-card__kicker">Etapa 02</span><h3 class="editable-card__title">Ambientes, Estilos & Paletas</h3></div>
+              <button type="button" class="btn-edit-inline no-print" data-edit-target="2:0">${editIcon}<span>Editar</span></button>
             </div>
             <div class="editable-card__thumbs">
-              ${
-                chosenEnvs.length
-                  ? chosenEnvs
-                      .map(
-                        (e) => `
-                    <span class="mini-ref-chip">
-                      <img src="${e.image}" alt="" />
-                      <span>${escapeHtml(e.title)}</span>
-                    </span>
-                  `
-                      )
-                      .join('')
-                  : '<span class="combo-tag">Nenhuma seleção registrada</span>'
-              }
+              ${chosenStyles.map((st) => `<span class="mini-ref-chip"><img src="${st.image}" alt="" /><span>${escapeHtml(st.title)}</span></span>`).join('')}
+              ${chosenPalettes.map((pal) => `<span class="mini-ref-chip"><span class="palette-dot" style="width:18px;height:18px;background:${pal.colors[2]};"></span><span>${escapeHtml(pal.title)}</span></span>`).join('')}
+              ${!chosenStyles.length && !chosenPalettes.length ? '<span class="combo-tag">Exploração aberta</span>' : ''}
             </div>
-            <p class="choice-insight"><strong>O que isso revela:</strong> ${escapeHtml(envInsight)}</p>
           </article>
 
-          <!-- Bloco 03: Estilos -->
           <article class="editable-card">
             <div class="editable-card__top">
-              <div>
-                <span class="choice-card__kicker">Capítulo 03</span>
-                <h3 class="editable-card__title">Linguagens & Estilos</h3>
-              </div>
-              <button type="button" class="btn-edit-inline no-print" data-edit-step="3">${editIcon}<span>Editar</span></button>
+              <div><span class="choice-card__kicker">Etapas 03 & 04</span><h3 class="editable-card__title">Materiais & Combinações</h3></div>
+              <button type="button" class="btn-edit-inline no-print" data-edit-target="3:0">${editIcon}<span>Editar</span></button>
             </div>
             <div class="editable-card__thumbs">
-              ${
-                chosenStyles.length
-                  ? chosenStyles
-                      .map(
-                        (st) => `
-                    <span class="mini-ref-chip">
-                      <img src="${st.image}" alt="" />
-                      <span>${escapeHtml(st.title)}</span>
-                    </span>
-                  `
-                      )
-                      .join('')
-                  : '<span class="combo-tag">Exploração aberta</span>'
-              }
-            </div>
-            <p class="choice-insight"><strong>O que isso revela:</strong> ${escapeHtml(styleInsight)}</p>
-          </article>
-
-          <!-- Bloco 04: Paletas -->
-          <article class="editable-card">
-            <div class="editable-card__top">
-              <div>
-                <span class="choice-card__kicker">Capítulo 04</span>
-                <h3 class="editable-card__title">Paletas e Sensações</h3>
-              </div>
-              <button type="button" class="btn-edit-inline no-print" data-edit-step="4">${editIcon}<span>Editar</span></button>
-            </div>
-            <div class="editable-card__thumbs">
-              ${
-                chosenPalettes.length
-                  ? chosenPalettes
-                      .map(
-                        (pal) => `
-                    <span class="mini-ref-chip">
-                      <span class="palette-dot" style="width:20px;height:20px;background:${pal.colors[2]};"></span>
-                      <span>${escapeHtml(pal.title)}</span>
-                    </span>
-                  `
-                      )
-                      .join('')
-                  : '<span class="combo-tag">Nenhuma paleta selecionada</span>'
-              }
-            </div>
-            <p class="choice-insight"><strong>O que isso revela:</strong> ${escapeHtml(paletteInsight)}</p>
-          </article>
-
-          <!-- Bloco 05: Materiais -->
-          <article class="editable-card">
-            <div class="editable-card__top">
-              <div>
-                <span class="choice-card__kicker">Capítulo 05</span>
-                <h3 class="editable-card__title">Materiais e Texturas</h3>
-              </div>
-              <button type="button" class="btn-edit-inline no-print" data-edit-step="5">${editIcon}<span>Editar</span></button>
-            </div>
-            <div class="editable-card__thumbs">
-              ${
-                chosenMaterials.length
-                  ? chosenMaterials
-                      .map(
-                        (m) => `
-                    <span class="mini-ref-chip">
-                      <span class="palette-dot" style="width:20px;height:20px;background:${m.swatch};"></span>
-                      <span>${escapeHtml(m.title)}</span>
-                    </span>
-                  `
-                      )
-                      .join('')
-                  : '<span class="combo-tag">Nenhum material selecionado</span>'
-              }
-            </div>
-            <p class="choice-insight"><strong>O que isso revela:</strong> ${escapeHtml(matInsight)}</p>
-          </article>
-
-          <!-- Bloco 06: Combinações -->
-          <article class="editable-card">
-            <div class="editable-card__top">
-              <div>
-                <span class="choice-card__kicker">Capítulo 06</span>
-                <h3 class="editable-card__title">Combinações Favoritas</h3>
-              </div>
-              <button type="button" class="btn-edit-inline no-print" data-edit-step="6">${editIcon}<span>Editar</span></button>
-            </div>
-            <div class="editable-card__thumbs">
+              ${chosenMaterials.map((m) => `<span class="mini-ref-chip"><span class="palette-dot" style="width:18px;height:18px;background:${m.swatch};"></span><span>${escapeHtml(m.title)}</span></span>`).join('')}
               ${chosenCombos.map((cmb) => `<span class="combo-tag">${escapeHtml(cmb.title)}</span>`).join('')}
-              ${
-                customParts.length
-                  ? `<span class="combo-tag" style="background:var(--bronze-soft);color:var(--bronze-dark);">Sua tríade: ${customParts.map((x) => escapeHtml(x.label)).join(' + ')}</span>`
-                  : ''
-              }
-              ${!chosenCombos.length && !customParts.length ? '<span class="combo-tag">A definir em conjunto</span>' : ''}
+              ${!chosenMaterials.length && !chosenCombos.length ? '<span class="combo-tag">A definir em conjunto</span>' : ''}
             </div>
-            <p class="choice-insight"><strong>O que isso revela:</strong> ${escapeHtml(comboInsight)}</p>
           </article>
 
-          <!-- Bloco 07: Iluminação -->
           <article class="editable-card">
             <div class="editable-card__top">
-              <div>
-                <span class="choice-card__kicker">Capítulo 07</span>
-                <h3 class="editable-card__title">Iluminação e Atmosfera</h3>
-              </div>
-              <button type="button" class="btn-edit-inline no-print" data-edit-step="7">${editIcon}<span>Editar</span></button>
+              <div><span class="choice-card__kicker">Etapa 05</span><h3 class="editable-card__title">Iluminação & Atmosfera</h3></div>
+              <button type="button" class="btn-edit-inline no-print" data-edit-target="5:0">${editIcon}<span>Editar</span></button>
             </div>
             <div class="editable-card__thumbs">
               <span class="combo-tag" style="background:var(--bronze-soft);color:var(--bronze-dark);">${escapeHtml(activeScenario.title)} · ${escapeHtml(activeScenario.kelvin)}</span>
-              ${chosenLighting.map((l) => `<span class="combo-tag">${escapeHtml(l.title)}</span>`).join('')}
+              ${s.lightingPreferences.map((id) => `<span class="combo-tag">${escapeHtml(findById(DATA.lightingPreferences, id)?.title || id)}</span>`).join('')}
             </div>
-            <p class="choice-insight"><strong>O que isso revela:</strong> ${escapeHtml(lightInsight)}</p>
           </article>
 
-          <!-- Bloco 08: Forma de Viver -->
           <article class="editable-card">
             <div class="editable-card__top">
-              <div>
-                <span class="choice-card__kicker">Capítulo 08</span>
-                <h3 class="editable-card__title">Personalidade & Forma de Viver</h3>
-              </div>
-              <button type="button" class="btn-edit-inline no-print" data-edit-step="8">${editIcon}<span>Editar</span></button>
+              <div><span class="choice-card__kicker">Etapa 06</span><h3 class="editable-card__title">Seu Jeito de Viver</h3></div>
+              <button type="button" class="btn-edit-inline no-print" data-edit-target="6:0">${editIcon}<span>Editar</span></button>
             </div>
             <div class="editable-card__thumbs">
-              ${chosenFeelings.map((f) => `<span class="combo-tag">${escapeHtml(f.title)}</span>`).join('')}
-              ${chosenRest ? `<span class="mini-ref-chip"><img src="${chosenRest.image}" alt="" /><span>${escapeHtml(chosenRest.title)}</span></span>` : ''}
-              ${chosenSpecials.map((sp) => `<span class="combo-tag">${escapeHtml(sp.label)}</span>`).join('')}
-              ${!chosenFeelings.length && !chosenRest && !chosenSpecials.length ? '<span class="combo-tag">Nenhuma sensação registrada</span>' : ''}
+              ${chosenFeelings.map((f) => `<span class="combo-tag">${escapeHtml(f.title)}</span>`).join('') || '<span class="combo-tag">Conforto e equilíbrio</span>'}
             </div>
-            <p class="choice-insight"><strong>O que isso revela:</strong> ${escapeHtml(livingInsight)}</p>
-          </article>
-
-          <!-- Bloco 09: Contexto do Projeto -->
-          <article class="editable-card">
-            <div class="editable-card__top">
-              <div>
-                <span class="choice-card__kicker">Capítulo 09</span>
-                <h3 class="editable-card__title">Contexto do Projeto</h3>
-              </div>
-              <button type="button" class="btn-edit-inline no-print" data-edit-step="9">${editIcon}<span>Editar</span></button>
-            </div>
-            <div class="editable-card__thumbs">
-              ${
-                projectSummaryParts.length
-                  ? projectSummaryParts.map((item) => `<span class="combo-tag">${escapeHtml(item)}</span>`).join('')
-                  : '<span class="combo-tag">Informações opcionais ainda não preenchidas</span>'
-              }
-              ${(p.rooms || []).map((rm) => `<span class="combo-tag">${escapeHtml(rm)}</span>`).join('')}
-            </div>
-            <p class="choice-insight">
-              <strong>Resumo prático:</strong>
-              ${
-                p.needs || p.restrictions
-                  ? escapeHtml([p.needs, p.restrictions].filter(Boolean).join(' · '))
-                  : 'Quando estiver pronto, adicione cidade, ambientes ou necessidades específicas para agilizar o primeiro encontro.'
-              }
-            </p>
           </article>
         </div>
 
-        <!-- 4. COMPARTILHAR COM A VIDART / SALVAR PDF / LGPD -->
+        <!-- 4. FINALIZAÇÃO & ENVIO -->
         <div class="reveal-cta-box reveal-stagger-4 no-print">
           <div style="max-width:54ch;">
-            <p class="eyebrow" style="margin-bottom:0.35rem;">Próximo Passo</p>
-            <h2 style="font-family:var(--font-display);font-size:1.9rem;font-weight:400;">Compartilhe sua descoberta com a Vidart</h2>
-            <p style="font-size:0.9rem;color:var(--ink-secondary);margin-top:0.35rem;">
-              Este perfil traduz suas preferências reais em um ponto de partida claro para que nossa equipe desenvolva uma proposta verdadeiramente alinhada ao seu olhar.
+            <p class="eyebrow" style="margin-bottom:0.35rem;">Finalizar Briefing</p>
+            <h2 style="font-family:var(--font-display);font-size:1.85rem;font-weight:400;">Enviar perfil completo para a Vidart</h2>
+            <p style="font-size:0.88rem;color:var(--ink-secondary);margin-top:0.35rem;">
+              Suas escolhas estéticas e seu levantamento funcional serão registrados em um único dossiê para orientar decisões reais do projeto.
             </p>
             ${
               !c.lgpdConsent
                 ? `
-              <label class="lgpd-box" style="margin-top:1rem;">
+              <label class="lgpd-box" style="margin-top:0.9rem;">
                 <input type="checkbox" id="revealLgpdCheck" />
-                <span class="lgpd-box__text">Autorizo o armazenamento deste perfil pela VA Arquitetura e Interiores exclusivamente para atendimento e briefing do meu projeto (LGPD).</span>
+                <span class="lgpd-box__text">Autorizo o armazenamento deste briefing pela VA Arquitetura e Interiores exclusivamente para atendimento do meu projeto (LGPD).</span>
               </label>
             `
                 : ''
             }
-            ${
-              ui.submitFeedback
-                ? `<div class="status-banner" role="status">${escapeHtml(ui.submitFeedback)}</div>`
-                : ''
-            }
+            ${ui.submitFeedback ? `<div class="status-banner" role="status">${escapeHtml(ui.submitFeedback)}</div>` : ''}
           </div>
 
           <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center;">
             <button type="button" class="btn-primary" id="submitProfileBtn">
-              <span>${isSubmitted ? 'Atualizar perfil enviado' : 'Enviar perfil para a Vidart'}</span>
+              <span>${isSubmitted ? 'Atualizar briefing enviado' : 'Enviar perfil para a Vidart'}</span>
             </button>
             <button type="button" class="btn-secondary" id="printPdfBtn">Salvar Dossiê (PDF)</button>
             <button type="button" class="btn-link-subtle" id="eraseMyDataBtn" style="color:#7A3B3B;">Excluir meus dados</button>
@@ -1505,28 +1565,28 @@
   // EVENTOS DAS ETAPAS
   // =========================================================================
 
-  function bindStageEvents(step) {
-    // Banner de retorno rápido ao perfil final (quando editando a partir da Etapa 10)
+  function bindStageEvents() {
     const returnBannerBtn = document.getElementById('returnToRevealBannerBtn');
-    if (returnBannerBtn) {
-      returnBannerBtn.addEventListener('click', () => goToStep(10));
-    }
+    if (returnBannerBtn) returnBannerBtn.addEventListener('click', () => goToFinalReveal());
 
-    // Botões "Editar" inline de cada bloco na Etapa 10
-    els.stageContainer.querySelectorAll('[data-edit-step]').forEach((btn) => {
+    // Editar diretamente do resumo final
+    els.stageContainer.querySelectorAll('[data-edit-target]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const target = Number(btn.dataset.editStep);
-        if (target >= 2 && target <= 9) {
-          goToStep(target, { returnToReveal: true });
+        const [stRaw, subRaw] = btn.dataset.editTarget.split(':');
+        const targetStep = Number(stRaw);
+        if (subRaw === 'contact') {
+          const subs = getStep8SubSteps();
+          const idx = subs.findIndex((x) => x.type === 'contact');
+          goTo(8, Math.max(0, idx), { returnToReveal: true });
+        } else {
+          goTo(targetStep, Number(subRaw) || 0, { returnToReveal: true });
         }
       });
     });
 
-    // Etapa 01
     const startBtn = document.getElementById('startJourneyBtn');
-    if (startBtn) {
-      startBtn.addEventListener('click', () => goToStep(2));
-    }
+    if (startBtn) startBtn.addEventListener('click', () => goTo(2, 0));
+
     const resetWelcomeBtn = document.getElementById('resetDraftWelcomeBtn');
     if (resetWelcomeBtn) {
       resetWelcomeBtn.addEventListener('click', () => {
@@ -1538,7 +1598,7 @@
       });
     }
 
-    // Lightbox zoom buttons (stopPropagation para não selecionar o card)
+    // Zoom lightbox
     els.stageContainer.querySelectorAll('[data-zoom-img]').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1546,25 +1606,23 @@
       });
     });
 
-    // Multi-select cards & pills
-    els.stageContainer.querySelectorAll('[data-select-type]').forEach((card) => {
-      const handleToggle = () => {
-        const type = card.dataset.selectType;
-        const id = card.dataset.id;
-        toggleInArray(draft.selections[type], id);
+    // Multi-select estéticos
+    els.stageContainer.querySelectorAll('[data-select-type]').forEach((el) => {
+      const handle = () => {
+        toggleInArray(draft.selections[el.dataset.selectType], el.dataset.id);
         persist();
         render();
       };
-      card.addEventListener('click', handleToggle);
-      card.addEventListener('keydown', (e) => {
+      el.addEventListener('click', handle);
+      el.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          handleToggle();
+          handle();
         }
       });
     });
 
-    // Etapa 03 — Troca de grupo de estilo
+    // Abas de estilo (Etapa 2.2)
     els.stageContainer.querySelectorAll('[data-style-group]').forEach((tab) => {
       tab.addEventListener('click', () => {
         ui.activeStyleGroup = tab.dataset.styleGroup;
@@ -1572,15 +1630,7 @@
       });
     });
 
-    // Etapa 05 — Toggle amostra vs aplicação
-    els.stageContainer.querySelectorAll('[data-mat-mode]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        ui.materialViewMode = btn.dataset.matMode;
-        render();
-      });
-    });
-
-    // Etapa 06 — Compositor de tríade
+    // Compositor de tríade (Etapa 4)
     els.stageContainer.querySelectorAll('[data-composer-slot]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const slot = btn.dataset.composerSlot;
@@ -1600,7 +1650,7 @@
       });
     }
 
-    // Etapa 07 — Cenários e slider de comparação
+    // Simulador de luz (Etapa 5.1)
     els.stageContainer.querySelectorAll('[data-lighting-scenario]').forEach((btn) => {
       btn.addEventListener('click', () => {
         draft.selections.lightingScenario = btn.dataset.lightingScenario;
@@ -1620,29 +1670,21 @@
       });
     }
 
-    // Etapa 08 — Rest space (single choice)
+    // Espaço de descanso (Etapa 6.2)
     els.stageContainer.querySelectorAll('[data-rest-space]').forEach((card) => {
-      const selectRest = () => {
-        const id = card.dataset.restSpace;
-        draft.selections.restSpace = draft.selections.restSpace === id ? null : id;
+      const handle = () => {
+        draft.selections.restSpace =
+          draft.selections.restSpace === card.dataset.restSpace ? null : card.dataset.restSpace;
         persist();
         render();
       };
-      card.addEventListener('click', selectRest);
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          selectRest();
-        }
-      });
+      card.addEventListener('click', handle);
     });
 
-    // Etapa 09 — Contexto do projeto e contato
+    // Etapa 7 — Contexto do projeto
     els.stageContainer.querySelectorAll('[data-ctx-single]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const key = btn.dataset.ctxSingle;
-        const val = btn.dataset.ctxVal;
-        draft.projectContext[key] = draft.projectContext[key] === val ? '' : val;
+        draft.projectContext[btn.dataset.ctxSingle] = btn.dataset.ctxVal;
         persist();
         render();
       });
@@ -1654,19 +1696,83 @@
         render();
       });
     });
+    els.stageContainer.querySelectorAll('[data-ctx-flag]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        toggleInArray(draft.projectContext.contextFlags, btn.dataset.ctxFlag);
+        persist();
+        render();
+      });
+    });
     els.stageContainer.querySelectorAll('[data-ctx-input]').forEach((input) => {
       input.addEventListener('input', (e) => {
         draft.projectContext[input.dataset.ctxInput] = e.target.value;
         persist();
       });
     });
+
+    // FASE 2 — Checklist linhas clicáveis com exclusividade lógica
+    els.stageContainer.querySelectorAll('[data-chk-q]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const qId = btn.dataset.chkQ;
+        const optId = btn.dataset.chkOpt;
+        const questions = CHK.buildChecklistQuestions(draft.projectContext);
+        const question = questions.find((q) => q.id === qId);
+        if (!question) return;
+
+        const current = draft.checklist.answers[qId] || [];
+        const next = CHK.toggleAnswerWithExclusivity(question, current, optId);
+        draft.checklist.answers[qId] = next;
+
+        // Preserva 1ª resposta original se ainda não registrada
+        if (!draft.checklist.originalAnswers[qId] && next.length > 0) {
+          draft.checklist.originalAnswers[qId] = [...next];
+        }
+
+        persist();
+        render();
+      });
+    });
+
+    // Ver outras opções (+N)
+    els.stageContainer.querySelectorAll('[data-expand-q]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        ui.expandedChecklistQuestions[btn.dataset.expandQ] = true;
+        render();
+      });
+    });
+
+    // Prioridades (máximo 3)
+    els.stageContainer.querySelectorAll('[data-prio-id]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.prioId;
+        const prios = draft.checklist.priorities || [];
+        const idx = prios.indexOf(id);
+        if (idx >= 0) {
+          prios.splice(idx, 1);
+        } else if (prios.length < 3) {
+          prios.push(id);
+        }
+        draft.checklist.priorities = prios;
+        persist();
+        render();
+      });
+    });
+
+    // Notas e contato (Etapa 8)
+    const chkNotes = document.getElementById('chkNotes');
+    if (chkNotes) {
+      chkNotes.addEventListener('input', (e) => {
+        draft.checklist.notes = e.target.value;
+        persist();
+      });
+    }
     els.stageContainer.querySelectorAll('[data-client-input]').forEach((input) => {
       input.addEventListener('input', (e) => {
         draft.client[input.dataset.clientInput] = e.target.value;
         persist();
       });
     });
-    const lgpdCheck = document.getElementById('lgpdConsentCheck');
+    const lgpdCheck = document.getElementById('lgpdConsentCheck') || document.getElementById('revealLgpdCheck');
     if (lgpdCheck) {
       lgpdCheck.addEventListener('change', (e) => {
         draft.client.lgpdConsent = e.target.checked;
@@ -1675,62 +1781,41 @@
       });
     }
 
-    // Etapa 10 — Envio, PDF, Revisão e Exclusão LGPD
-    const revealLgpdCheck = document.getElementById('revealLgpdCheck');
-    if (revealLgpdCheck) {
-      revealLgpdCheck.addEventListener('change', (e) => {
-        draft.client.lgpdConsent = e.target.checked;
-        draft.client.lgpdConsentAt = e.target.checked ? new Date().toISOString() : null;
-        persist();
-      });
-    }
-
+    // Submissão, PDF e Exclusão LGPD
     const submitBtn = document.getElementById('submitProfileBtn');
     if (submitBtn) {
       submitBtn.addEventListener('click', async () => {
         if (!draft.client.lgpdConsent) {
-          ui.submitFeedback =
-            'Para registrar e enviar seu perfil, marque a autorização de privacidade (LGPD) acima.';
+          ui.submitFeedback = 'Marque a autorização de privacidade (LGPD) acima para registrar seu briefing.';
           render();
           return;
         }
-        markStepCompleted(10);
+        markStepCompleted(8);
         const synthesis = buildAestheticSynthesis();
-        const { record, remoteSync } = await STORE.submitBriefing(draft, synthesis);
+        const chkSummary = buildChecklistSummary();
+        const { record, remoteSync } = await STORE.submitBriefing(draft, synthesis, chkSummary);
         const syncMsg = remoteSync.configured
           ? remoteSync.ok
             ? ' e sincronizado com o servidor do estúdio.'
-            : ' (salvo localmente; falha ao contatar o endpoint externo).'
+            : ' (salvo localmente; endpoint externo indisponível).'
           : ' no registro estruturado da VA Arquitetura.';
-        ui.submitFeedback = `Perfil ${record.recordId} registrado com sucesso${syncMsg}`;
+        ui.submitFeedback = `Briefing ${record.recordId} registrado com sucesso${syncMsg}`;
         render();
       });
     }
 
     const printPdfBtn = document.getElementById('printPdfBtn');
-    if (printPdfBtn) {
-      printPdfBtn.addEventListener('click', () => window.print());
-    }
-
-    const reviewBtn = document.getElementById('reviewChoicesBtn');
-    if (reviewBtn) {
-      reviewBtn.addEventListener('click', () => goToStep(2));
-    }
+    if (printPdfBtn) printPdfBtn.addEventListener('click', () => window.print());
 
     const eraseBtn = document.getElementById('eraseMyDataBtn');
     if (eraseBtn) {
       eraseBtn.addEventListener('click', () => {
-        if (
-          window.confirm(
-            'Deseja excluir permanentemente suas respostas e dados pessoais desta sessão?'
-          )
-        ) {
-          if (draft.submittedRecordId) {
-            STORE.deleteRecord(draft.submittedRecordId);
-          }
+        if (window.confirm('Deseja excluir permanentemente suas respostas e dados pessoais desta sessão?')) {
+          if (draft.submittedRecordId) STORE.deleteRecord(draft.submittedRecordId);
           draft = STORE.clearDraft();
           ui.activeStyleGroup = null;
           ui.submitFeedback = null;
+          ui.returnToReveal = false;
           render();
         }
       });
@@ -1755,7 +1840,7 @@
   }
 
   // =========================================================================
-  // PAINEL INTERNO PRIVADO DA EQUIPE DE ARQUITETURA
+  // PAINEL PRIVADO DA EQUIPE VIDART (ESTÉTICA + NECESSIDADES POR AMBIENTE)
   // =========================================================================
 
   function openAdminModal() {
@@ -1775,24 +1860,21 @@
             <p class="eyebrow" style="margin-bottom:0.35rem;">Acesso Restrito</p>
             <h3 style="font-family:var(--font-display);font-size:1.75rem;font-weight:400;">Equipe VA Arquitetura</h3>
             <p style="font-size:0.84rem;color:var(--ink-secondary);margin-top:0.3rem;">
-              Digite a chave de acesso para consultar os briefings individuais dos clientes.
+              Digite a chave de acesso para consultar os briefings estéticos e levantamentos de necessidades.
             </p>
           </div>
           <div class="field-group">
             <label class="field-label" for="adminPinInput">Chave de acesso</label>
-            <input class="field-input" id="adminPinInput" type="password" autocomplete="current-password" placeholder="Digite a senha da equipe" required />
+            <input class="field-input" id="adminPinInput" type="password" autocomplete="current-password" placeholder="Senha da equipe" required />
           </div>
           <p id="adminPinError" style="font-size:0.82rem;color:#7A3B3B;" hidden>Chave incorreta. Tente novamente.</p>
           <button type="submit" class="btn-primary">Entrar no painel</button>
-          <p style="font-size:0.74rem;color:var(--ink-muted);">Chave padrão inicial: <code>va2024</code> (alterável nas configurações).</p>
+          <p style="font-size:0.74rem;color:var(--ink-muted);">Chave padrão inicial: <code>va2024</code></p>
         </form>
       `;
-
-      const form = document.getElementById('adminLoginForm');
-      form.addEventListener('submit', async (e) => {
+      document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const pin = document.getElementById('adminPinInput').value;
-        const ok = await STORE.verifyAdminPin(pin);
+        const ok = await STORE.verifyAdminPin(document.getElementById('adminPinInput').value);
         if (ok) {
           ui.adminAuthenticated = true;
           renderAdminBody();
@@ -1805,26 +1887,24 @@
 
     const records = STORE.loadRegistry();
     const settings = STORE.loadSettings();
-    const query = ui.adminSearch.trim().toLowerCase();
-    const filtered = query
+    const q = ui.adminSearch.trim().toLowerCase();
+    const filtered = q
       ? records.filter(
           (r) =>
-            (r.client?.name || '').toLowerCase().includes(query) ||
-            (r.projectContext?.city || '').toLowerCase().includes(query) ||
-            (r.recordId || '').toLowerCase().includes(query)
+            (r.client?.name || '').toLowerCase().includes(q) ||
+            (r.projectContext?.city || '').toLowerCase().includes(q) ||
+            (r.recordId || '').toLowerCase().includes(q)
         )
       : records;
 
-    if (!ui.adminSelectedId && filtered.length) {
-      ui.adminSelectedId = filtered[0].recordId;
-    }
+    if (!ui.adminSelectedId && filtered.length) ui.adminSelectedId = filtered[0].recordId;
     const activeRecord = filtered.find((r) => r.recordId === ui.adminSelectedId) || filtered[0] || null;
 
     els.adminBody.innerHTML = `
       <div class="admin-toolbar">
         <div class="segmented-toggle">
           <button type="button" class="segmented-toggle__btn ${ui.adminTab === 'records' ? 'is-active' : ''}" data-admin-tab="records">Briefings (${records.length})</button>
-          <button type="button" class="segmented-toggle__btn ${ui.adminTab === 'settings' ? 'is-active' : ''}" data-admin-tab="settings">Configurações & Integração</button>
+          <button type="button" class="segmented-toggle__btn ${ui.adminTab === 'settings' ? 'is-active' : ''}" data-admin-tab="settings">Configurações</button>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:0.55rem;">
           <button type="button" class="btn-secondary" id="adminExportCsvBtn" ${records.length ? '' : 'disabled'}>Exportar CSV</button>
@@ -1832,7 +1912,6 @@
           <button type="button" class="btn-link-subtle" id="adminLogoutBtn">Sair</button>
         </div>
       </div>
-
       ${ui.adminTab === 'settings' ? renderAdminSettings(settings) : renderAdminRecords(filtered, activeRecord)}
     `;
 
@@ -1841,61 +1920,61 @@
 
   function renderAdminSettings(settings) {
     return `
-      <div class="form-card" style="max-width:680px;">
-        <h3 style="font-family:var(--font-display);font-size:1.65rem;font-weight:400;">Persistência & Segurança</h3>
-        <p style="font-size:0.86rem;color:var(--ink-secondary);">
-          Por padrão, os registros ficam armazenados localmente no navegador de forma estruturada. Para centralizar respostas enviadas pelos clientes em qualquer celular, conecte um endpoint HTTP (Webhook, Supabase, Make ou Formspree) abaixo.
-        </p>
-
+      <div class="form-card" style="max-width:660px;">
+        <h3 style="font-family:var(--font-display);font-size:1.65rem;font-weight:400;">Integração & Segurança</h3>
         <div class="field-group">
-          <label class="field-label" for="cfgWebhook">URL de Endpoint / Webhook (POST JSON) <span class="field-optional">(opcional)</span></label>
+          <label class="field-label" for="cfgWebhook">URL de Webhook / API (POST JSON) <span class="field-optional">(opcional)</span></label>
           <input class="field-input" id="cfgWebhook" type="url" placeholder="https://seu-endpoint.com/api/briefings" value="${escapeHtml(settings.webhookUrl)}" />
         </div>
-
         <div class="field-group">
-          <label class="field-label" for="cfgNewPin">Alterar chave de acesso da equipe <span class="field-optional">(deixe em branco para manter)</span></label>
-          <input class="field-input" id="cfgNewPin" type="password" placeholder="Nova senha da equipe" />
+          <label class="field-label" for="cfgNewPin">Alterar chave da equipe <span class="field-optional">(opcional)</span></label>
+          <input class="field-input" id="cfgNewPin" type="password" placeholder="Nova senha (mín. 4 caracteres)" />
         </div>
-
         <div style="display:flex;align-items:center;gap:1rem;">
-          <button type="button" class="btn-primary" id="saveAdminSettingsBtn">Salvar configurações</button>
-          <span id="settingsSavedMsg" style="font-size:0.84rem;color:#254035;" hidden>Configurações atualizadas.</span>
+          <button type="button" class="btn-primary" id="saveAdminSettingsBtn">Salvar</button>
+          <span id="settingsSavedMsg" style="font-size:0.84rem;color:#254035;" hidden>Configurações salvas.</span>
         </div>
       </div>
     `;
   }
 
-  function renderAdminRecords(filtered, activeRecord) {
+  function renderAdminRecords(filtered, r) {
     if (!filtered.length) {
       return `
-        <div class="form-card" style="text-align:center;padding:3rem 1.5rem;">
+        <div class="form-card" style="text-align:center;padding:2.5rem 1.5rem;">
           <h3 style="font-family:var(--font-display);font-size:1.6rem;font-weight:400;">Nenhum briefing registrado ainda</h3>
-          <p style="font-size:0.88rem;color:var(--ink-secondary);max-width:48ch;margin:0.4rem auto 0;">
-            Assim que um cliente concluir a jornada e autorizar o envio na Etapa 10, a ficha completa aparecerá organizada aqui para a equipe.
+          <p style="font-size:0.88rem;color:var(--ink-secondary);margin-top:0.35rem;">
+            Os briefings enviados pelos clientes aparecerão aqui com todas as escolhas estéticas e respostas por ambiente.
           </p>
         </div>
       `;
     }
 
-    const r = activeRecord;
+    const qIndex = CHK.getAllQuestionsIndex();
     const s = r.rawSelections || {};
     const p = r.projectContext || {};
     const c = r.client || {};
+    const chk = r.checklist || {};
 
-    const selectedThumbs = [
-      ...(s.environments || []).map((id) => {
-        const it = findById(DATA.environments, id);
-        return it ? { img: it.image, label: `${it.title} (${id})` } : null;
-      }),
-      ...(s.styles || []).map((id) => {
-        const it = findById(DATA.styles, id);
-        return it ? { img: it.image, label: `${it.title} (${id})` } : null;
-      }),
-      ...(s.materials || []).map((id) => {
-        const it = findById(DATA.materials, id);
-        return it ? { img: it.sampleImage, label: `${it.title} (${id})` } : null;
+    const chkRows = Object.entries(chk.answers || {})
+      .map(([qId, optIds]) => {
+        const q = qIndex[qId];
+        if (!q || !optIds.length) return '';
+        const labels = optIds.map((oid) => q.options.find((o) => o.id === oid)?.label || oid);
+        return `<div style="margin-bottom:0.6rem;"><strong>${escapeHtml(q.category)}:</strong> ${labels.map(escapeHtml).join(' · ')}</div>`;
       })
-    ].filter(Boolean);
+      .filter(Boolean)
+      .join('');
+
+    const prioRows = (chk.priorities || [])
+      .map((pid, idx) => {
+        const [qId, optId] = pid.split('::');
+        const q = qIndex[qId];
+        const opt = q?.options.find((o) => o.id === optId);
+        return opt ? `<li><strong>#${idx + 1} (${escapeHtml(q.category.split(' · ')[0])}):</strong> ${escapeHtml(opt.label)}</li>` : '';
+      })
+      .filter(Boolean)
+      .join('');
 
     return `
       <div class="admin-split">
@@ -1910,11 +1989,11 @@
                   <strong style="font-size:0.92rem;">${escapeHtml(item.client?.name || 'Sem nome')}</strong>
                   <span class="combo-tag">${escapeHtml(item.status || 'Novo')}</span>
                 </div>
-                <div style="font-size:0.78rem;color:var(--ink-muted);margin-top:0.25rem;">
-                  ${escapeHtml(item.projectContext?.projectType || 'Interiores')} · ${escapeHtml(item.projectContext?.city || 'Local não informado')}
+                <div style="font-size:0.78rem;color:var(--ink-muted);margin-top:0.2rem;">
+                  ${escapeHtml(item.projectContext?.projectType || 'Interiores')} · ${escapeHtml(item.projectContext?.propertyCategory || 'Residencial')}
                 </div>
-                <div style="font-size:0.72rem;color:var(--ink-muted);margin-top:0.2rem;">
-                  ${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('pt-BR') : ''} · ID ${escapeHtml(item.recordId)}
+                <div style="font-size:0.72rem;color:var(--ink-muted);margin-top:0.15rem;">
+                  ${item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('pt-BR') : ''} · v${escapeHtml(item.questionnaireVersion || '4.0')}
                 </div>
               </button>
             `
@@ -1924,16 +2003,12 @@
         </div>
 
         <div class="admin-detail">
-          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;align-items:flex-start;border-bottom:1px solid var(--hairline);padding-bottom:1rem;">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;border-bottom:1px solid var(--hairline);padding-bottom:1rem;">
             <div>
-              <span class="choice-card__kicker">Ficha de Briefing · ${escapeHtml(r.recordId)}</span>
-              <h3 style="font-family:var(--font-display);font-size:1.9rem;font-weight:400;">${escapeHtml(c.name)}</h3>
-              <p style="font-size:0.84rem;color:var(--ink-secondary);">
-                ${[c.email, c.phone].filter(Boolean).map(escapeHtml).join(' · ') || 'Contato não informado'}
-              </p>
-              <p style="font-size:0.74rem;color:var(--ink-muted);margin-top:0.25rem;">
-                LGPD: ${c.lgpdConsent ? `Consentimento registrado em ${new Date(c.lgpdConsentAt).toLocaleString('pt-BR')}` : 'Pendente'}
-              </p>
+              <span class="choice-card__kicker">Ficha ${escapeHtml(r.recordId)} · Questionário v${escapeHtml(r.questionnaireVersion || '4.0')}</span>
+              <h3 style="font-family:var(--font-display);font-size:1.85rem;font-weight:400;">${escapeHtml(c.name)}</h3>
+              <p style="font-size:0.84rem;color:var(--ink-secondary);">${[c.email, c.phone].filter(Boolean).map(escapeHtml).join(' · ') || 'Contato não informado'}</p>
+              <p style="font-size:0.74rem;color:var(--ink-muted);margin-top:0.2rem;">LGPD: ${c.lgpdConsent ? `Autorizado em ${new Date(c.lgpdConsentAt).toLocaleString('pt-BR')}` : 'Pendente'}</p>
             </div>
             <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
               <button type="button" class="btn-secondary" id="adminPrintOneBtn">Exportar PDF</button>
@@ -1942,75 +2017,36 @@
           </div>
 
           <div>
-            <span class="summary-item__label">Interpretação Automática (Síntese)</span>
-            <p style="font-family:var(--font-display);font-size:1.25rem;margin-top:0.2rem;">${escapeHtml(r.aestheticSynthesis?.headline || '')}</p>
-            <p style="font-size:0.86rem;color:var(--ink-secondary);margin-top:0.25rem;">${escapeHtml(r.aestheticSynthesis?.narrative || '')}</p>
+            <span class="summary-item__label">Projeto & Prioridades Destacadas</span>
+            <p style="font-size:0.86rem;margin-top:0.25rem;">
+              ${[p.projectType, p.propertyCategory, p.interiorStatus, p.commercialSegment, p.city, p.timeline].filter(Boolean).map(escapeHtml).join(' · ') || '—'}
+            </p>
+            ${prioRows ? `<ul class="needs-room-list" style="margin-top:0.6rem;">${prioRows}</ul>` : ''}
           </div>
 
           <div>
-            <span class="summary-item__label">Escolhas Originais do Cliente (Referências Selecionadas)</span>
-            <div class="admin-thumbs" style="margin-top:0.6rem;">
-              ${selectedThumbs
-                .map(
-                  (t) => `
-                <div class="admin-thumb">
-                  <img src="${t.img}" alt="${escapeHtml(t.label)}" />
-                  <span>${escapeHtml(t.label)}</span>
-                </div>
-              `
-                )
-                .join('') || '<p style="font-size:0.84rem;color:var(--ink-muted);">Nenhuma imagem selecionada.</p>'}
+            <span class="summary-item__label">Respostas do Checklist por Ambiente</span>
+            <div style="font-size:0.85rem;color:var(--ink-secondary);margin-top:0.45rem;">
+              ${chkRows || '<p style="color:var(--ink-muted);">Nenhuma resposta de checklist registrada.</p>'}
             </div>
+            ${chk.notes ? `<p style="font-size:0.84rem;margin-top:0.5rem;"><strong>Observações do cliente:</strong> ${escapeHtml(chk.notes)}</p>` : ''}
           </div>
 
-          <div class="form-grid">
-            <div>
-              <span class="summary-item__label">Paletas & Combinações</span>
-              <p style="font-size:0.85rem;margin-top:0.25rem;">
-                ${(s.palettes || []).map((id) => escapeHtml(findById(DATA.palettes, id)?.title || id)).join(', ') || '—'}
-              </p>
-              <p style="font-size:0.82rem;color:var(--ink-secondary);margin-top:0.25rem;">
-                ${(s.combinations || []).map((id) => escapeHtml(findById(DATA.combinations, id)?.title || id)).join(' | ') || ''}
-              </p>
-            </div>
-            <div>
-              <span class="summary-item__label">Iluminação & Sensações</span>
-              <p style="font-size:0.85rem;margin-top:0.25rem;">
-                ${(s.lightingPreferences || []).map((id) => escapeHtml(findById(DATA.lightingPreferences, id)?.title || id)).join(', ') || '—'}
-              </p>
-              <p style="font-size:0.82rem;color:var(--ink-secondary);margin-top:0.25rem;">
-                ${(s.homeFeelings || []).map((id) => escapeHtml(findById(DATA.homeFeelings, id)?.title || id)).join(', ') || ''}
-              </p>
-            </div>
-            <div>
-              <span class="summary-item__label">Dados do Projeto</span>
-              <p style="font-size:0.85rem;margin-top:0.25rem;">
-                ${[p.projectType, p.propertyCategory, p.city, p.timeline, p.investmentRange].filter(Boolean).map(escapeHtml).join(' · ') || '—'}
-              </p>
-              <p style="font-size:0.82rem;color:var(--ink-secondary);margin-top:0.25rem;">
-                Ambientes: ${(p.rooms || []).map(escapeHtml).join(', ') || '—'}
-              </p>
-            </div>
-            <div>
-              <span class="summary-item__label">Necessidades, Restrições & Pendências</span>
-              <p style="font-size:0.84rem;margin-top:0.25rem;">${escapeHtml(p.needs || 'Sem observações de necessidade.')}</p>
-              ${p.restrictions ? `<p style="font-size:0.82rem;color:var(--ink-secondary);margin-top:0.2rem;">Restrições: ${escapeHtml(p.restrictions)}</p>` : ''}
-              ${
-                (r.pendingFields || []).length
-                  ? `<p style="font-size:0.76rem;color:var(--bronze-dark);margin-top:0.35rem;">Respostas pendentes: ${r.pendingFields.map(escapeHtml).join(', ')}</p>`
-                  : ''
-              }
-            </div>
+          <div>
+            <span class="summary-item__label">Preferências Estéticas</span>
+            <p style="font-size:0.85rem;margin-top:0.25rem;"><strong>Estilos:</strong> ${(s.styles || []).map((id) => escapeHtml(findById(DATA.styles, id)?.title || id)).join(', ') || '—'}</p>
+            <p style="font-size:0.85rem;margin-top:0.2rem;"><strong>Paletas:</strong> ${(s.palettes || []).map((id) => escapeHtml(findById(DATA.palettes, id)?.title || id)).join(', ') || '—'}</p>
+            <p style="font-size:0.85rem;margin-top:0.2rem;"><strong>Materiais:</strong> ${(s.materials || []).map((id) => escapeHtml(findById(DATA.materials, id)?.title || id)).join(', ') || '—'}</p>
           </div>
 
           <div style="border-top:1px solid var(--hairline);padding-top:1rem;">
-            <label class="field-label" for="adminTeamNotes">Observações Internas da Equipe (separadas das escolhas do cliente)</label>
-            <textarea class="field-textarea" id="adminTeamNotes" placeholder="Anotações técnicas do arquiteto, ideias de layout, orçamento interno..." style="margin-top:0.45rem;">${escapeHtml(r.teamNotes || '')}</textarea>
+            <label class="field-label" for="adminTeamNotes">Observações Internas da Equipe</label>
+            <textarea class="field-textarea" id="adminTeamNotes" style="margin-top:0.45rem;" placeholder="Anotações técnicas da equipe...">${escapeHtml(r.teamNotes || '')}</textarea>
             <div style="display:flex;align-items:center;gap:0.8rem;margin-top:0.65rem;">
-              <select class="field-select" id="adminRecordStatus" style="max-width:220px;">
+              <select class="field-select" id="adminRecordStatus" style="max-width:200px;">
                 ${['Novo', 'Em análise', 'Briefing validado', 'Em proposta'].map((st) => `<option value="${st}" ${r.status === st ? 'selected' : ''}>${st}</option>`).join('')}
               </select>
-              <button type="button" class="btn-primary" id="saveTeamNotesBtn">Salvar notas internas</button>
+              <button type="button" class="btn-primary" id="saveTeamNotesBtn">Salvar notas</button>
               <span id="notesSavedToast" style="font-size:0.82rem;color:#254035;" hidden>Salvo.</span>
             </div>
           </div>
@@ -2028,7 +2064,7 @@
     });
 
     const csvBtn = document.getElementById('adminExportCsvBtn');
-    if (csvBtn) csvBtn.addEventListener('click', () => STORE.exportRecordsToCsv(records, DATA));
+    if (csvBtn) csvBtn.addEventListener('click', () => STORE.exportRecordsToCsv(records, DATA, CHK));
 
     const jsonBtn = document.getElementById('adminExportJsonBtn');
     if (jsonBtn) jsonBtn.addEventListener('click', () => STORE.exportRecordsToJson(records));
@@ -2059,9 +2095,10 @@
     const saveNotesBtn = document.getElementById('saveTeamNotesBtn');
     if (saveNotesBtn && activeRecord) {
       saveNotesBtn.addEventListener('click', () => {
-        const notes = document.getElementById('adminTeamNotes').value;
-        const status = document.getElementById('adminRecordStatus').value;
-        STORE.updateRecordTeamData(activeRecord.recordId, { teamNotes: notes, status });
+        STORE.updateRecordTeamData(activeRecord.recordId, {
+          teamNotes: document.getElementById('adminTeamNotes').value,
+          status: document.getElementById('adminRecordStatus').value
+        });
         const toast = document.getElementById('notesSavedToast');
         if (toast) {
           toast.hidden = false;
@@ -2083,59 +2120,15 @@
 
     const printOneBtn = document.getElementById('adminPrintOneBtn');
     if (printOneBtn && activeRecord) {
-      printOneBtn.addEventListener('click', () => {
-        const w = window.open('', '_blank', 'width=900,height=700');
-        if (!w) {
-          window.print();
-          return;
-        }
-        const s = activeRecord.rawSelections || {};
-        const p = activeRecord.projectContext || {};
-        const c = activeRecord.client || {};
-        w.document.write(`
-          <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Briefing VA — ${escapeHtml(c.name)}</title>
-          <style>
-            body{font-family:Georgia,serif;color:#221E1A;padding:36px;line-height:1.55;}
-            h1{font-weight:400;margin:0 0 4px;} .meta{font-family:sans-serif;font-size:12px;color:#666;margin-bottom:24px;}
-            h2{font-family:sans-serif;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#967751;margin:22px 0 6px;border-bottom:1px solid #ddd;padding-bottom:4px;}
-            p{font-family:sans-serif;font-size:13px;margin:4px 0;}
-          </style></head><body>
-          <h1>VA Arquitetura e Interiores — Dossiê de Briefing</h1>
-          <div class="meta">Cliente: ${escapeHtml(c.name)} · ${escapeHtml(c.email)} · ${escapeHtml(c.phone)} · ID ${escapeHtml(activeRecord.recordId)}</div>
-          <h2>Síntese Estética</h2>
-          <p><strong>${escapeHtml(activeRecord.aestheticSynthesis?.headline || '')}</strong></p>
-          <p>${escapeHtml(activeRecord.aestheticSynthesis?.narrative || '')}</p>
-          <h2>Escolhas Originais</h2>
-          <p><strong>Estilos:</strong> ${(s.styles || []).map((id) => escapeHtml(findById(DATA.styles, id)?.title || id)).join(', ') || '—'}</p>
-          <p><strong>Paletas:</strong> ${(s.palettes || []).map((id) => escapeHtml(findById(DATA.palettes, id)?.title || id)).join(', ') || '—'}</p>
-          <p><strong>Materiais:</strong> ${(s.materials || []).map((id) => escapeHtml(findById(DATA.materials, id)?.title || id)).join(', ') || '—'}</p>
-          <p><strong>Combinações:</strong> ${(s.combinations || []).map((id) => escapeHtml(findById(DATA.combinations, id)?.title || id)).join(' | ') || '—'}</p>
-          <p><strong>Iluminação:</strong> ${(s.lightingPreferences || []).map((id) => escapeHtml(findById(DATA.lightingPreferences, id)?.title || id)).join(', ') || '—'}</p>
-          <p><strong>Sensações:</strong> ${(s.homeFeelings || []).map((id) => escapeHtml(findById(DATA.homeFeelings, id)?.title || id)).join(', ') || '—'}</p>
-          <h2>Contexto do Projeto</h2>
-          <p>${[p.projectType, p.propertyCategory, p.city, p.timeline, p.investmentRange].filter(Boolean).map(escapeHtml).join(' · ') || '—'}</p>
-          <p><strong>Ambientes:</strong> ${(p.rooms || []).map(escapeHtml).join(', ') || '—'}</p>
-          <p><strong>Necessidades:</strong> ${escapeHtml(p.needs || '—')}</p>
-          <p><strong>Restrições:</strong> ${escapeHtml(p.restrictions || '—')}</p>
-          <h2>Observações Internas da Equipe</h2>
-          <p>${escapeHtml(activeRecord.teamNotes || 'Sem observações internas.')}</p>
-          </body></html>
-        `);
-        w.document.close();
-        w.focus();
-        w.print();
-      });
+      printOneBtn.addEventListener('click', () => window.print());
     }
 
     const saveSettingsBtn = document.getElementById('saveAdminSettingsBtn');
     if (saveSettingsBtn) {
       saveSettingsBtn.addEventListener('click', async () => {
-        const webhookUrl = document.getElementById('cfgWebhook').value.trim();
+        STORE.saveSettings({ webhookUrl: document.getElementById('cfgWebhook').value.trim() });
         const newPin = document.getElementById('cfgNewPin').value.trim();
-        STORE.saveSettings({ webhookUrl });
-        if (newPin.length >= 4) {
-          await STORE.updateAdminPin(newPin);
-        }
+        if (newPin.length >= 4) await STORE.updateAdminPin(newPin);
         const msg = document.getElementById('settingsSavedMsg');
         if (msg) {
           msg.hidden = false;
@@ -2146,17 +2139,12 @@
   }
 
   // =========================================================================
-  // EVENTOS GLOBAIS & INICIALIZAÇÃO
+  // EVENTOS GLOBAIS & BOOT
   // =========================================================================
 
-  els.brandHomeBtn.addEventListener('click', () => goToStep(1));
-  els.prevStepBtn.addEventListener('click', () =>
-    goToStep(ui.returnToReveal ? 10 : draft.currentStep - 1)
-  );
-  els.nextStepBtn.addEventListener('click', () =>
-    goToStep(ui.returnToReveal ? 10 : draft.currentStep + 1)
-  );
-  els.skipStepBtn.addEventListener('click', () => goToStep(draft.currentStep + 1));
+  els.brandHomeBtn.addEventListener('click', () => goTo(1, 0));
+  els.prevStepBtn.addEventListener('click', goPrev);
+  els.nextStepBtn.addEventListener('click', goNext);
 
   els.lightboxCloseBtn.addEventListener('click', closeLightbox);
   els.lightboxModal.addEventListener('click', (e) => {
@@ -2176,13 +2164,11 @@
     }
   });
 
-  // Registro do Service Worker (PWA)
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
     });
   }
 
-  // Primeira renderização
   render();
 })();

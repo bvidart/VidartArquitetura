@@ -1,12 +1,12 @@
 // =========================================================================
-// VA. ARQUITETURA & INTERIORES — PERSISTÊNCIA, LGPD & EXPORTAÇÃO
-// Armazenamento estruturado com separação entre escolhas brutas do cliente,
-// síntese automática e observações internas da equipe.
+// VA. ARQUITETURA & INTERIORES — PERSISTÊNCIA UNIFICADA (FASE 1 + FASE 2)
+// Armazena jornada estética + checklist inteligente de necessidades + prioridades
+// no mesmo registro estruturado, preservando respostas originais e LGPD.
 // =========================================================================
 
 (function () {
-  const SESSION_KEY = 'va_discovery_session_v3';
-  const REGISTRY_KEY = 'va_briefings_registry_v3';
+  const SESSION_KEY = 'va_discovery_session_v4';
+  const REGISTRY_KEY = 'va_briefings_registry_v4';
   const SETTINGS_KEY = 'va_studio_settings_v3';
 
   // SHA-256 de "va2024" (chave inicial padrão da equipe)
@@ -28,7 +28,6 @@
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('');
     }
-    // Fallback determinístico apenas para ambientes sem crypto.subtle (http não-localhost)
     let h = 2166136261;
     for (let i = 0; i < data.length; i++) {
       h ^= data[i];
@@ -40,46 +39,46 @@
   function createEmptyDraft() {
     return {
       sessionId: generateId('ses'),
+      questionnaireVersion: (window.VA_CHECKLIST && window.VA_CHECKLIST.VERSION) || '4.0',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       currentStep: 1,
+      currentSubStep: 0,
       completedSteps: [],
       submittedRecordId: null,
       selections: {
-        // Etapa 02 — Ambientes (IDs estáveis)
         environments: [],
-        // Etapa 03 — Estilos híbridos (IDs estáveis)
         styles: [],
-        // Etapa 04 — Paletas e sensações (IDs estáveis)
         palettes: [],
-        // Etapa 05 — Materiais e texturas (IDs estáveis)
         materials: [],
-        // Etapa 06 — Combinações de materiais (IDs estáveis + composição livre)
         combinations: [],
         customCombination: {
           stone: null,
           wood: null,
           accent: null
         },
-        // Etapa 07 — Iluminação e atmosfera
         lightingScenario: 'natural_abundante',
         lightingPreferences: [],
-        // Etapa 08 — Personalidade e forma de viver
         homeFeelings: [],
         restSpace: null,
         specialElements: []
       },
       projectContext: {
-        projectType: '',
-        propertyCategory: '',
-        rooms: [],
+        projectType: '',       // Reforma | Construção | Interiores | Consultoria
+        propertyCategory: 'Residencial', // Residencial | Comercial
+        interiorStatus: '',    // novo | ocupado (quando Interiores)
+        commercialSegment: '', // loja | escritorio | clinica | gastronomia | outro
+        rooms: [],             // IDs estáveis: sala, cozinha, jantar, quarto...
+        contextFlags: [],      // pets, criancas, acessibilidade
         city: '',
-        timeline: '',
-        investmentRange: '',
-        needs: '',
-        priorities: '',
-        restrictions: '',
-        extraReferences: ''
+        timeline: ''
+      },
+      checklist: {
+        displayedQuestionIds: [],
+        answers: {},           // { [questionId]: [optionId, ...] }
+        originalAnswers: {},   // preserva 1ª resposta original mesmo após revisões
+        priorities: [],        // até 3 IDs ("questionId::optionId")
+        notes: ''
       },
       client: {
         name: '',
@@ -111,6 +110,10 @@
         projectContext: {
           ...base.projectContext,
           ...(parsed.projectContext || {})
+        },
+        checklist: {
+          ...base.checklist,
+          ...(parsed.checklist || {})
         },
         client: {
           ...base.client,
@@ -167,13 +170,11 @@
       const parsed = raw ? JSON.parse(raw) : {};
       return {
         pinHash: parsed.pinHash || DEFAULT_PIN_HASH,
-        studioWhatsapp: parsed.studioWhatsapp || '',
         webhookUrl: parsed.webhookUrl || ''
       };
     } catch (e) {
       return {
         pinHash: DEFAULT_PIN_HASH,
-        studioWhatsapp: '',
         webhookUrl: ''
       };
     }
@@ -196,7 +197,6 @@
     if (!input) return false;
     const hashed = await sha256(input);
     if (hashed === settings.pinHash) return true;
-    // Fallback para ambientes sem WebCrypto (ex: arquivo local sem HTTPS)
     if (hashed.startsWith('fallback_') && settings.pinHash === DEFAULT_PIN_HASH) {
       return input === 'va2024';
     }
@@ -210,21 +210,19 @@
 
   function computePendingFields(draft) {
     const pending = [];
-    if (!draft.selections.environments.length) pending.push('Ambientes de conexão');
-    if (!draft.selections.styles.length) pending.push('Estilos de interesse');
-    if (!draft.selections.palettes.length) pending.push('Paletas de cores');
-    if (!draft.selections.materials.length) pending.push('Materiais e texturas');
-    if (!draft.selections.combinations.length && !draft.selections.customCombination.stone) {
-      pending.push('Combinações de materiais');
-    }
-    if (!draft.selections.lightingPreferences.length) pending.push('Preferências de iluminação');
-    if (!draft.selections.homeFeelings.length) pending.push('Sensações de morar');
+    if (!draft.selections.environments.length) pending.push('Ambientes estéticos');
+    if (!draft.selections.styles.length) pending.push('Estilos');
+    if (!draft.selections.palettes.length) pending.push('Paletas');
+    if (!draft.selections.materials.length) pending.push('Materiais');
     if (!draft.projectContext.projectType) pending.push('Tipo de projeto');
-    if (!draft.projectContext.city) pending.push('Cidade / Localização');
+    if (draft.projectContext.propertyCategory === 'Residencial' && !draft.projectContext.rooms.length) {
+      pending.push('Ambientes do projeto');
+    }
+    if (!draft.projectContext.city) pending.push('Cidade');
     return pending;
   }
 
-  async function submitBriefing(draft, synthesis) {
+  async function submitBriefing(draft, synthesis, checklistSummary) {
     const registry = loadRegistry();
     const now = new Date().toISOString();
     const existingIdx = draft.submittedRecordId
@@ -236,11 +234,15 @@
 
     const existingNotes = existingIdx >= 0 ? registry[existingIdx].teamNotes || '' : '';
     const existingStatus = existingIdx >= 0 ? registry[existingIdx].status || 'Novo' : 'Novo';
+    const preservedFirstAnswers =
+      existingIdx >= 0 && registry[existingIdx].checklist?.originalAnswers
+        ? registry[existingIdx].checklist.originalAnswers
+        : JSON.parse(JSON.stringify(draft.checklist.originalAnswers || draft.checklist.answers));
 
-    // Separação rigorosa: escolhas brutas do cliente vs síntese automática vs notas da equipe
     const record = {
       recordId,
       sessionId: draft.sessionId,
+      questionnaireVersion: draft.questionnaireVersion || '4.0',
       submittedAt: existingIdx >= 0 ? registry[existingIdx].submittedAt : now,
       updatedAt: now,
       status: existingStatus,
@@ -253,8 +255,16 @@
         lgpdConsent: Boolean(draft.client.lgpdConsent),
         lgpdConsentAt: draft.client.lgpdConsentAt || now
       },
-      rawSelections: JSON.parse(JSON.stringify(draft.selections)),
       projectContext: JSON.parse(JSON.stringify(draft.projectContext)),
+      rawSelections: JSON.parse(JSON.stringify(draft.selections)),
+      checklist: {
+        displayedQuestionIds: [...(draft.checklist.displayedQuestionIds || [])],
+        answers: JSON.parse(JSON.stringify(draft.checklist.answers || {})),
+        originalAnswers: preservedFirstAnswers,
+        priorities: [...(draft.checklist.priorities || [])],
+        notes: (draft.checklist.notes || '').trim(),
+        summary: checklistSummary || null
+      },
       aestheticSynthesis: JSON.parse(JSON.stringify(synthesis)),
       teamNotes: existingNotes
     };
@@ -269,7 +279,6 @@
     draft.submittedRecordId = recordId;
     saveDraft(draft);
 
-    // Sincronização externa real caso o escritório tenha configurado um endpoint (Webhook / API)
     const settings = loadSettings();
     let remoteSync = { configured: false, ok: false };
     if (settings.webhookUrl) {
@@ -293,12 +302,8 @@
     const registry = loadRegistry();
     const idx = registry.findIndex((r) => r.recordId === recordId);
     if (idx < 0) return null;
-    if (typeof updates.teamNotes === 'string') {
-      registry[idx].teamNotes = updates.teamNotes;
-    }
-    if (typeof updates.status === 'string') {
-      registry[idx].status = updates.status;
-    }
+    if (typeof updates.teamNotes === 'string') registry[idx].teamNotes = updates.teamNotes;
+    if (typeof updates.status === 'string') registry[idx].status = updates.status;
     registry[idx].teamUpdatedAt = new Date().toISOString();
     saveRegistry(registry);
     return registry[idx];
@@ -307,7 +312,6 @@
   function deleteRecord(recordId) {
     const registry = loadRegistry().filter((r) => r.recordId !== recordId);
     saveRegistry(registry);
-    // Se for o registro da sessão atual, limpar referência
     const draft = loadDraft();
     if (draft.submittedRecordId === recordId) {
       draft.submittedRecordId = null;
@@ -318,13 +322,12 @@
 
   function escapeCsvCell(val) {
     const str = String(val == null ? '' : val).replace(/\r?\n/g, ' | ');
-    if (/[",;]/.test(str)) {
-      return `"${str.replace(/"/g, '""')}"`;
-    }
+    if (/[",;]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
     return str;
   }
 
-  function exportRecordsToCsv(records, dataCatalog) {
+  function exportRecordsToCsv(records, dataCatalog, checklistCatalog) {
+    const qIndex = checklistCatalog ? checklistCatalog.getAllQuestionsIndex() : {};
     const lookup = (list, ids) =>
       (ids || [])
         .map((id) => {
@@ -335,39 +338,57 @@
 
     const headers = [
       'ID Registro',
+      'Versão',
       'Data Envio',
       'Status',
       'Nome',
       'E-mail',
-      'WhatsApp/Telefone',
+      'Telefone',
       'Consentimento LGPD',
       'Tipo de Projeto',
-      'Categoria',
-      'Cidade',
+      'Imóvel',
       'Ambientes',
+      'Cidade',
       'Prazo',
-      'Faixa Investimento (Opcional)',
-      'Ambientes Selecionados',
-      'Estilos Selecionados',
-      'Paletas Selecionadas',
-      'Materiais Selecionados',
-      'Combinações Selecionadas',
+      'Estilos',
+      'Paletas',
+      'Materiais',
+      'Combinações',
       'Iluminação',
-      'Sensações Desejadas',
-      'Necessidades',
-      'Prioridades',
-      'Restrições',
-      'Síntese Estética',
-      'Campos Pendentes',
-      'Observações Internas da Equipe'
+      'Top 3 Prioridades',
+      'Checklist por Ambiente',
+      'Observações do Cliente',
+      'Observações da Equipe'
     ];
 
     const rows = records.map((r) => {
       const s = r.rawSelections || {};
       const p = r.projectContext || {};
       const c = r.client || {};
+      const chk = r.checklist || {};
+
+      const chkText = Object.entries(chk.answers || {})
+        .map(([qId, optIds]) => {
+          const q = qIndex[qId];
+          if (!q || !optIds.length) return '';
+          const labels = optIds.map((oid) => q.options.find((o) => o.id === oid)?.label || oid);
+          return `${q.category}: ${labels.join(', ')}`;
+        })
+        .filter(Boolean)
+        .join(' || ');
+
+      const prioText = (chk.priorities || [])
+        .map((pid) => {
+          const [qId, optId] = pid.split('::');
+          const q = qIndex[qId];
+          const opt = q?.options.find((o) => o.id === optId);
+          return opt ? `${q.category.split(' · ')[0]}: ${opt.label}` : pid;
+        })
+        .join(' | ');
+
       return [
         r.recordId,
+        r.questionnaireVersion || '4.0',
         r.submittedAt ? new Date(r.submittedAt).toLocaleString('pt-BR') : '',
         r.status || 'Novo',
         c.name || '',
@@ -375,23 +396,18 @@
         c.phone || '',
         c.lgpdConsent ? `Sim (${c.lgpdConsentAt || ''})` : 'Não',
         p.projectType || '',
-        p.propertyCategory || '',
+        `${p.propertyCategory || ''}${p.interiorStatus ? ' (' + p.interiorStatus + ')' : ''}${p.commercialSegment ? ' (' + p.commercialSegment + ')' : ''}`,
+        (p.rooms || []).join(', '),
         p.city || '',
-        (p.rooms || []).join(' / '),
         p.timeline || '',
-        p.investmentRange || '',
-        lookup(dataCatalog.environments, s.environments),
         lookup(dataCatalog.styles, s.styles),
         lookup(dataCatalog.palettes, s.palettes),
         lookup(dataCatalog.materials, s.materials),
         lookup(dataCatalog.combinations, s.combinations),
         lookup(dataCatalog.lightingPreferences, s.lightingPreferences),
-        lookup(dataCatalog.homeFeelings, s.homeFeelings),
-        p.needs || '',
-        p.priorities || '',
-        p.restrictions || '',
-        (r.aestheticSynthesis && r.aestheticSynthesis.headline) || '',
-        (r.pendingFields || []).join(' / '),
+        prioText,
+        chkText,
+        chk.notes || '',
         r.teamNotes || ''
       ];
     });

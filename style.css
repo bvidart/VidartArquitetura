@@ -2324,6 +2324,314 @@ button,
 }
 
 /* ==========================================================================
+   17B. FASE 1 REFINOS (LEGIBILIDADE, ESPAÇAMENTO, IMAGENS COMPACTAS, CHECK)
+   ========================================================================== */
+
+.chapter-pill__sub {
+  padding-left: 0.55rem;
+  margin-left: 0.15rem;
+  border-left: 1px solid var(--hairline-strong);
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+/* Hierarquia limpa: título editorial -> descrição curta -> pergunta -> alternativas */
+.stage-header {
+  max-width: 760px;
+  margin-bottom: clamp(1.9rem, 3.6vw, 2.75rem);
+}
+
+.stage-lead {
+  font-family: var(--font-sans);
+  font-size: 0.98rem;
+  line-height: 1.65;
+  color: var(--ink-secondary);
+}
+
+.stage-question {
+  margin-top: 1.15rem;
+  font-family: var(--font-sans);
+  font-size: 1.02rem;
+  font-weight: 500;
+  color: var(--ink-primary);
+}
+
+/* Reflexão em sans-serif legível (evita serifado longo difícil de ler) */
+.reflection-whisper__text {
+  font-family: var(--font-sans);
+  font-size: 0.94rem;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--ink-primary);
+}
+
+/* Imagens padronizadas e mais compactas para evitar rolagem excessiva */
+.choice-card__media {
+  aspect-ratio: 16 / 10;
+  max-height: 210px;
+}
+
+.visual-grid {
+  gap: clamp(1.1rem, 2.4vw, 1.75rem);
+}
+
+/* Check animado (180ms) nos cartões visuais */
+@keyframes checkPop {
+  0% { transform: scale(0.75); }
+  65% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@keyframes checkStroke {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+
+.choice-card.is-selected .choice-card__check {
+  animation: checkPop 190ms var(--ease-arch) both;
+}
+
+.choice-card__check svg polyline {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+}
+
+.choice-card.is-selected .choice-card__check svg polyline {
+  animation: checkStroke 190ms var(--ease-arch) 20ms forwards;
+}
+
+/* ==========================================================================
+   17C. FASE 2 — CHECKLIST INTELIGENTE DE NECESSIDADES (LINHAS COM BOLINHA)
+   ========================================================================== */
+
+.checklist-shell {
+  max-width: 700px;
+  margin-inline: auto;
+  padding-top: clamp(2rem, 4.5vw, 3.6rem);
+  padding-bottom: 2rem;
+  animation: archFadeUp 0.42s var(--ease-arch) both;
+}
+
+.checklist-header {
+  margin-bottom: 1.75rem;
+}
+
+.checklist-prompt {
+  font-family: var(--font-display);
+  font-size: clamp(1.95rem, 3.8vw, 2.9rem);
+  font-weight: 400;
+  line-height: 1.12;
+  color: var(--ink-primary);
+  text-wrap: balance;
+}
+
+.checklist-instruction {
+  margin-top: 0.7rem;
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  color: var(--ink-muted);
+}
+
+.checklist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.checklist-divider {
+  height: 1px;
+  background-color: var(--hairline);
+  margin: 0.45rem 0;
+}
+
+.checklist-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.05rem 1.25rem;
+  min-height: 56px;
+  border-radius: 14px;
+  border: 1px solid var(--hairline);
+  background-color: var(--bg-surface);
+  text-align: left;
+  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, transform 150ms ease;
+}
+
+.checklist-row:hover {
+  border-color: var(--hairline-strong);
+  background-color: #FFFFFF;
+}
+
+.checklist-row:active {
+  transform: scale(0.99);
+}
+
+.checklist-row.is-selected {
+  border-color: var(--bronze);
+  background-color: rgba(150, 119, 81, 0.075);
+  box-shadow: 0 0 0 1px var(--bronze);
+}
+
+.checklist-row.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.checklist-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid var(--hairline-strong);
+  background-color: var(--bg-canvas);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: transparent;
+  transition: background-color 180ms var(--ease-arch), border-color 180ms var(--ease-arch), color 180ms ease;
+}
+
+.checklist-row.is-selected .checklist-circle {
+  background-color: var(--bronze);
+  border-color: var(--bronze);
+  color: var(--ink-light);
+  animation: checkPop 180ms var(--ease-arch) both;
+}
+
+.checklist-circle svg polyline {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+}
+
+.checklist-row.is-selected .checklist-circle svg polyline {
+  animation: checkStroke 180ms var(--ease-arch) 15ms forwards;
+}
+
+.checklist-row__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.checklist-row__label {
+  font-family: var(--font-sans);
+  font-size: 0.96rem;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--ink-primary);
+}
+
+.checklist-row.is-selected .checklist-row__label {
+  font-weight: 500;
+}
+
+.checklist-row__tag {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bronze);
+}
+
+.checklist-more-btn {
+  margin-top: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.62rem 1.1rem;
+  min-height: 42px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline-strong);
+  background-color: transparent;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ink-secondary);
+  transition: all 180ms ease;
+}
+
+.checklist-more-btn:hover {
+  border-color: var(--ink-primary);
+  color: var(--ink-primary);
+  background-color: var(--bg-surface);
+}
+
+.priority-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.15rem;
+  padding: 0.42rem 0.95rem;
+  border-radius: 999px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--hairline-strong);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--bronze-dark);
+}
+
+.priority-badge-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--bronze);
+  color: var(--ink-light);
+  font-size: 0.78rem;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  animation: checkPop 180ms var(--ease-arch) both;
+}
+
+.needs-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.15rem;
+  margin-top: 1rem;
+}
+
+.needs-room-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.needs-room-list li {
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--ink-secondary);
+  padding-left: 0.9rem;
+  position: relative;
+}
+
+.needs-room-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.58rem;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--bronze);
+}
+
+@media (max-width: 720px) {
+  .needs-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .choice-card__media {
+    max-height: none;
+    aspect-ratio: 4 / 3;
+  }
+
+  .checklist-row {
+    padding: 0.95rem 1rem;
+  }
+}
+
+/* ==========================================================================
    18. PRINT / PDF DOSSIER EXPORT
    ========================================================================== */
 
