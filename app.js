@@ -221,14 +221,63 @@
     };
   }
 
+  function computeAestheticCompass(selections) {
+    const scores = computeAffinityScores(selections);
+    const ratio = (leftTags, rightTags) => {
+      const l = leftTags.reduce((a, t) => a + (scores[t] || 0), 0);
+      const r = rightTags.reduce((a, t) => a + (scores[t] || 0), 0);
+      if (l === 0 && r === 0) return 50;
+      return Math.round(18 + (r / (l + r)) * 64);
+    };
+
+    const lightBonus =
+      selections.lightingScenario === 'intimista'
+        ? 18
+        : selections.lightingScenario === 'luz_indireta'
+          ? 10
+          : selections.lightingScenario === 'natural_abundante'
+            ? -14
+            : 0;
+
+    const clamp = (v) => Math.max(15, Math.min(85, v));
+
+    return [
+      {
+        left: 'Luminoso & Arejado',
+        right: 'Intimista & Profundo',
+        value: clamp(ratio(['claro', 'escandinavo', 'suave'], ['profundo', 'intimista', 'contraste']) + lightBonus)
+      },
+      {
+        left: 'Pureza Minimalista',
+        right: 'Riqueza Tátil',
+        value: clamp(ratio(['minimalista', 'monocromatico'], ['organico', 'natural', 'terroso', 'rustico_sofisticado']))
+      },
+      {
+        left: 'Fluidez Orgânica',
+        right: 'Precisão Geométrica',
+        value: clamp(ratio(['organico', 'suave', 'japandi'], ['moderno', 'industrial', 'contraste']))
+      },
+      {
+        left: 'Atemporal Clássico',
+        right: 'Expressão Contemporânea',
+        value: clamp(ratio(['classico', 'neoclassico', 'elegante'], ['contemporaneo', 'moderno', 'ecletico']))
+      }
+    ];
+  }
+
   // =========================================================================
   // NAVEGAÇÃO ENTRE CAPÍTULOS
   // =========================================================================
 
-  function goToStep(stepNumber) {
+  function goToStep(stepNumber, opts = {}) {
     const clamped = Math.max(1, Math.min(10, stepNumber));
     if (draft.currentStep > 1) {
       markStepCompleted(draft.currentStep);
+    }
+    if (opts.returnToReveal) {
+      ui.returnToReveal = true;
+    } else if (clamped === 10 || clamped === 1) {
+      ui.returnToReveal = false;
     }
     draft.currentStep = clamped;
     persist();
@@ -252,15 +301,19 @@
     if (!isWelcome) {
       els.prevStepBtn.hidden = false;
       const isOptional = step === 6 || step === 8 || step === 9;
-      els.skipStepBtn.hidden = !isOptional;
+      els.skipStepBtn.hidden = !isOptional || ui.returnToReveal;
 
       if (step === 10) {
         els.nextStepBtn.hidden = true;
         els.skipStepBtn.hidden = true;
-        els.journeyMeta.textContent = 'Síntese personalizada pronta para compartilhar';
+        els.journeyMeta.textContent = 'Sua identidade estética está pronta — edite qualquer bloco quando quiser';
+      } else if (ui.returnToReveal) {
+        els.nextStepBtn.hidden = false;
+        els.nextStepLabel.textContent = 'Salvar e voltar ao meu perfil';
+        els.journeyMeta.textContent = 'Editando escolha · Suas alterações atualizam o perfil automaticamente';
       } else {
         els.nextStepBtn.hidden = false;
-        els.nextStepLabel.textContent = step === 9 ? 'Ver minha identidade' : 'Continuar';
+        els.nextStepLabel.textContent = step === 9 ? 'Revelar minha identidade' : 'Continuar';
         els.journeyMeta.textContent = `Etapa ${chapter.code} de 10 · Salvo automaticamente`;
       }
     }
@@ -286,6 +339,20 @@
       case 8: html = renderStep8Living(); break;
       case 9: html = renderStep9ProjectContext(); break;
       case 10: html = renderStep10Reveal(); break;
+    }
+
+    if (ui.returnToReveal && step > 1 && step < 10) {
+      const banner = `
+        <div class="return-edit-banner" style="margin-top:1.25rem;margin-bottom:0;">
+          <p class="return-edit-banner__text">
+            <strong>Modo de ajuste:</strong> altere suas preferências abaixo e volte direto para o seu painel final atualizado.
+          </p>
+          <button type="button" class="btn-primary" id="returnToRevealBannerBtn" style="background:var(--bronze);border-color:var(--bronze);padding:0.6rem 1.25rem;">
+            Voltar ao meu perfil
+          </button>
+        </div>
+      `;
+      html = banner + html;
     }
 
     els.stageContainer.innerHTML = html;
@@ -1000,176 +1067,415 @@
     `;
   }
 
-  // ETAPA 10 — SUA IDENTIDADE ESTÉTICA (REVELAÇÃO & MOODBOARD)
+  // ETAPA 10 — SUA IDENTIDADE ESTÉTICA (REVELAÇÃO GRATIFICANTE & PAINEL EDITÁVEL)
   function renderStep10Reveal() {
     const s = draft.selections;
     const p = draft.projectContext;
     const c = draft.client;
     const synthesis = buildAestheticSynthesis();
+    const compass = computeAestheticCompass(s);
 
-    // Monta galeria visual real com base nas seleções do usuário
-    const visualRefs = [];
-    s.environments.forEach((id) => {
-      const item = findById(DATA.environments, id);
-      if (item) visualRefs.push({ image: item.image, caption: item.title });
-    });
-    s.styles.forEach((id) => {
-      const item = findById(DATA.styles, id);
-      if (item && !visualRefs.some((v) => v.image === item.image)) {
-        visualRefs.push({ image: item.image, caption: `Estilo ${item.title}` });
-      }
-    });
-    s.materials.forEach((id) => {
-      const item = findById(DATA.materials, id);
-      if (item && !visualRefs.some((v) => v.image === item.sampleImage)) {
-        visualRefs.push({ image: item.sampleImage, caption: item.title });
-      }
-    });
-    if (visualRefs.length === 0) {
-      visualRefs.push(
-        { image: 'assets/va-ref-01.webp', caption: 'Atmosfera Mineral' },
-        { image: 'assets/va-ref-08.webp', caption: 'Curadoria Material' },
-        { image: 'assets/va-ref-04.webp', caption: 'Proporção e Luz' }
-      );
-    }
+    const firstName = (c.name || '').trim().split(/\s+/)[0];
+    const greetingTitle = firstName
+      ? `${escapeHtml(firstName)}, descobrimos um pouco do que faz um espaço ser seu.`
+      : 'Descobrimos um pouco do que faz um espaço ser seu.';
 
+    const chosenEnvs = s.environments.map((id) => findById(DATA.environments, id)).filter(Boolean);
+    const chosenStyles = s.styles.map((id) => findById(DATA.styles, id)).filter(Boolean);
     const chosenPalettes = s.palettes.map((id) => findById(DATA.palettes, id)).filter(Boolean);
     const chosenMaterials = s.materials.map((id) => findById(DATA.materials, id)).filter(Boolean);
     const chosenCombos = s.combinations.map((id) => findById(DATA.combinations, id)).filter(Boolean);
     const chosenLighting = s.lightingPreferences.map((id) => findById(DATA.lightingPreferences, id)).filter(Boolean);
+    const activeScenario = findById(DATA.lightingScenarios, s.lightingScenario) || DATA.lightingScenarios[0];
     const chosenFeelings = s.homeFeelings.map((id) => findById(DATA.homeFeelings, id)).filter(Boolean);
+    const chosenRest = findById(DATA.restSpaces, s.restSpace);
+    const chosenSpecials = s.specialElements.map((id) => findById(DATA.specialElements, id)).filter(Boolean);
+
     const custom = s.customCombination;
-    const customLabel = [
-      findById(DATA.composerSlots.stone, custom.stone)?.label,
-      findById(DATA.composerSlots.wood, custom.wood)?.label,
-      findById(DATA.composerSlots.accent, custom.accent)?.label
-    ]
-      .filter(Boolean)
-      .join(' + ');
+    const customParts = [
+      findById(DATA.composerSlots.stone, custom.stone),
+      findById(DATA.composerSlots.wood, custom.wood),
+      findById(DATA.composerSlots.accent, custom.accent)
+    ].filter(Boolean);
+
+    // Galeria visual real para o Moodboard
+    const visualRefs = [];
+    chosenEnvs.forEach((item) => visualRefs.push({ image: item.image, caption: item.title, desc: item.subtitle }));
+    chosenStyles.forEach((item) => {
+      if (!visualRefs.some((v) => v.image === item.image)) {
+        visualRefs.push({ image: item.image, caption: `Estilo ${item.title}`, desc: item.desc });
+      }
+    });
+    chosenMaterials.forEach((item) => {
+      if (!visualRefs.some((v) => v.image === item.sampleImage)) {
+        visualRefs.push({ image: item.sampleImage, caption: item.title, desc: item.desc });
+      }
+    });
+    if (visualRefs.length === 0) {
+      visualRefs.push(
+        { image: 'assets/va-ref-01.webp', caption: 'Atmosfera Mineral', desc: 'Equilíbrio entre textura mineral e luz natural.' },
+        { image: 'assets/va-ref-08.webp', caption: 'Curadoria Material', desc: 'Pedra natural, madeira e metais escovados.' },
+        { image: 'assets/va-ref-04.webp', caption: 'Proporção e Luz', desc: 'Arquitetura serena e acolhedora.' }
+      );
+    }
+
+    const editIcon = `
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 20h9"></path>
+        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+      </svg>
+    `;
+
+    // Explicações curatoriais personalizadas para cada bloco
+    const envInsight = chosenEnvs.length
+      ? `Sua escolha por ${chosenEnvs.map((e) => e.atmosphere.toLowerCase()).slice(0, 2).join(' e ')} mostra que você busca espaços onde a proporção e a atmosfera acolhem logo no primeiro olhar.`
+      : 'Você ainda não selecionou ambientes de conexão — clique em editar para explorar espaços de referência.';
+
+    const styleInsight =
+      chosenStyles.length >= 2
+        ? `Misturar ${chosenStyles.slice(0, 3).map((x) => x.title).join(' com ')} revela um gosto autoral e sofisticado: você valoriza o melhor de cada linguagem sem se prender a fórmulas prontas.`
+        : chosenStyles.length === 1
+          ? `A identificação com o estilo ${chosenStyles[0].title} traz clareza de direção, servindo como base para detalhes personalizados ao seu ritmo de vida.`
+          : 'Ainda em aberto — você pode selecionar uma ou mais linguagens para enriquecer sua leitura estética.';
+
+    const paletteInsight = chosenPalettes.length
+      ? `Cores em torno de ${chosenPalettes.map((x) => x.feeling.toLowerCase()).slice(0, 2).join(' e ')} constroem a temperatura emocional da casa, influenciando diretamente o bem-estar diário.`
+      : 'Selecione uma paleta para visualizar como as cores moldam a sensação dos seus espaços.';
+
+    const matInsight = chosenMaterials.length
+      ? `A preferência por ${chosenMaterials.slice(0, 3).map((m) => m.title.toLowerCase()).join(', ')} indica sensibilidade tátil: superfícies autênticas que envelhecem bem e trazem verdade ao toque.`
+      : 'Explore madeiras, pedras, tecidos e acabamentos para definir a textura do seu projeto.';
+
+    const comboInsight =
+      chosenCombos.length || customParts.length
+        ? 'Essas combinações já estabelecem um vocabulário material coerente entre piso, marcenaria, pedras e detalhes — prontas para guiar a especificação real.'
+        : 'Você pode escolher uma composição pronta ou montar sua tríade personalizada de pedra, madeira e metal.';
+
+    const lightInsight = `O cenário "${activeScenario.title}" (${activeScenario.kelvin}) ${
+      chosenLighting.length
+        ? `somado a ${chosenLighting.slice(0, 2).map((l) => l.title.toLowerCase()).join(' e ')}`
+        : ''
+    } orienta como a luz vai esculpir volumes, valorizar texturas e acompanhar os diferentes momentos do seu dia.`;
+
+    const livingInsight = chosenFeelings.length
+      ? `Acima da estética, o espaço precisa entregar ${chosenFeelings.slice(0, 3).map((f) => f.title.toLowerCase()).join(', ')} — esse é o verdadeiro ponto de partida de um projeto sob medida.`
+      : 'Conte como você deseja se sentir em casa para conectarmos a estética à sua rotina.';
+
+    const projectSummaryParts = [
+      p.projectType,
+      p.propertyCategory,
+      p.city,
+      p.timeline,
+      p.investmentRange
+    ].filter(Boolean);
 
     const isSubmitted = Boolean(draft.submittedRecordId);
 
     return `
       <section class="stage-shell">
-        <div class="reveal-hero">
-          <p class="eyebrow">Sua Identidade Estética · VA Arquitetura e Interiores</p>
-          <h1 class="reveal-hero__title">Descobrimos um pouco do que faz um espaço ser seu.</h1>
-          <p class="reveal-hero__synthesis">${escapeHtml(synthesis.narrative)}</p>
-          <div class="reveal-tags">
-            <span class="reveal-tag">${escapeHtml(synthesis.headline)}</span>
-            ${synthesis.tags.map((t) => `<span class="reveal-tag">${escapeHtml(t)}</span>`).join('')}
-          </div>
-        </div>
+        <!-- 1. HERO DE REVELAÇÃO + BÚSSOLA DO SEU OLHAR -->
+        <div class="reveal-hero reveal-stagger-1">
+          <svg class="reveal-hero__arc" viewBox="0 0 360 360" fill="none" aria-hidden="true">
+            <path d="M30 340C30 168.792 168.792 30 340 30" stroke="#C6A982" stroke-width="1.2" />
+            <path d="M95 340C95 204.69 204.69 95 340 95" stroke="#F4EFE6" stroke-width="0.8" stroke-opacity="0.35" />
+          </svg>
 
-        <div class="moodboard-layout">
-          <div class="moodboard-panel">
-            <h2 class="moodboard-panel__title">Moodboard Personalizado</h2>
-            <div class="moodboard-collage">
-              ${visualRefs
-                .slice(0, 5)
+          <div class="reveal-hero__grid">
+            <div>
+              <p class="eyebrow">Sua Identidade Estética · VA Arquitetura e Interiores</p>
+              <h1 class="reveal-hero__title">${greetingTitle}</h1>
+              <p class="reveal-hero__synthesis">${escapeHtml(synthesis.narrative)}</p>
+              <div class="reveal-tags">
+                <span class="reveal-tag">${escapeHtml(synthesis.headline)}</span>
+                ${synthesis.tags.map((t) => `<span class="reveal-tag">${escapeHtml(t)}</span>`).join('')}
+              </div>
+            </div>
+
+            <div class="reveal-compass" aria-label="Bússola estética baseada nas suas escolhas">
+              <span class="reveal-compass__head">Bússola do Seu Olhar</span>
+              ${compass
                 .map(
-                  (ref) => `
-                <figure class="moodboard-collage__item">
-                  <img src="${ref.image}" alt="${escapeHtml(ref.caption)}" />
-                  <figcaption class="moodboard-collage__cap">${escapeHtml(ref.caption)}</figcaption>
-                </figure>
+                  (axis) => `
+                <div class="compass-axis">
+                  <div class="compass-axis__labels">
+                    <span>${escapeHtml(axis.left)}</span>
+                    <span>${escapeHtml(axis.right)}</span>
+                  </div>
+                  <div class="compass-axis__track">
+                    <div class="compass-axis__fill" style="width:${axis.value}%;"></div>
+                    <div class="compass-axis__dot" style="left:${axis.value}%;"></div>
+                  </div>
+                </div>
               `
                 )
                 .join('')}
             </div>
-
-            ${
-              chosenPalettes.length
-                ? `
-              <div style="margin-top:1.35rem;">
-                <span class="summary-item__label" style="display:block;">Paleta Cromática Selecionada</span>
-                ${chosenPalettes
-                  .map(
-                    (pal) => `
-                  <div style="margin-top:0.55rem;">
-                    <span style="font-size:0.84rem;color:var(--ink-secondary);">${escapeHtml(pal.title)}</span>
-                    <div class="swatch-bar">
-                      ${pal.colors.map((hex) => `<span style="background:${hex}"></span>`).join('')}
-                    </div>
-                  </div>
-                `
-                  )
-                  .join('')}
-              </div>
-            `
-                : ''
-            }
-          </div>
-
-          <div class="moodboard-panel">
-            <h2 class="moodboard-panel__title">Síntese das Suas Escolhas</h2>
-            <div class="summary-list">
-              <div class="summary-item">
-                <div class="summary-item__label">Afinidades Estéticas</div>
-                <div class="summary-item__val">
-                  ${s.styles.length ? s.styles.map((id) => escapeHtml(findById(DATA.styles, id)?.title)).join(' · ') : 'Exploração aberta e personalizada'}
-                </div>
-              </div>
-              <div class="summary-item">
-                <div class="summary-item__label">Materiais e Texturas</div>
-                <div class="summary-item__val">
-                  ${chosenMaterials.length ? chosenMaterials.map((m) => escapeHtml(m.title)).join(' · ') : 'A definir com a curadoria do estúdio'}
-                </div>
-              </div>
-              <div class="summary-item">
-                <div class="summary-item__label">Combinações Favoritas</div>
-                <div class="summary-item__val">
-                  ${
-                    chosenCombos.length || customLabel
-                      ? [...chosenCombos.map((x) => escapeHtml(x.title)), customLabel ? `Tríade própria: ${escapeHtml(customLabel)}` : '']
-                          .filter(Boolean)
-                          .join(' | ')
-                      : 'A definir em conjunto'
-                  }
-                </div>
-              </div>
-              <div class="summary-item">
-                <div class="summary-item__label">Iluminação & Atmosfera</div>
-                <div class="summary-item__val">
-                  ${
-                    chosenLighting.length
-                      ? chosenLighting.map((l) => escapeHtml(l.title)).join(' · ')
-                      : escapeHtml(findById(DATA.lightingScenarios, s.lightingScenario)?.title || 'Luz natural equilibrada')
-                  }
-                </div>
-              </div>
-              <div class="summary-item">
-                <div class="summary-item__label">Sensações Valorizadas</div>
-                <div class="summary-item__val">
-                  ${chosenFeelings.length ? chosenFeelings.map((f) => escapeHtml(f.title)).join(' · ') : 'Conforto e equilíbrio'}
-                </div>
-              </div>
-              ${
-                p.projectType || p.city
-                  ? `
-                <div class="summary-item">
-                  <div class="summary-item__label">Contexto do Projeto</div>
-                  <div class="summary-item__val">
-                    ${[p.projectType, p.propertyCategory, p.city, p.timeline].filter(Boolean).map(escapeHtml).join(' · ')}
-                  </div>
-                </div>
-              `
-                  : ''
-              }
-            </div>
           </div>
         </div>
 
-        <div class="reveal-cta-box no-print">
-          <div style="max-width:52ch;">
-            <h2 style="font-family:var(--font-display);font-size:1.75rem;font-weight:400;">Compartilhe este perfil com a Vidart</h2>
-            <p style="font-size:0.88rem;color:var(--ink-secondary);margin-top:0.3rem;">
-              Com base nas suas escolhas reais, nossa equipe poderá compreender seus desejos e desenvolver uma proposta verdadeiramente alinhada ao seu olhar.
+        <!-- 2. MOODBOARD VISUAL INTERATIVO -->
+        <div class="moodboard-panel reveal-stagger-2">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:0.75rem;margin-bottom:1rem;">
+            <div>
+              <span class="choice-card__kicker">Curadoria Visual</span>
+              <h2 class="moodboard-panel__title" style="margin-bottom:0;">Seu Moodboard Personalizado</h2>
+            </div>
+            <span style="font-size:0.78rem;color:var(--ink-muted);">Toque em qualquer imagem para ampliar</span>
+          </div>
+
+          <div class="moodboard-collage">
+            ${visualRefs
+              .slice(0, 5)
+              .map(
+                (ref) => `
+              <figure class="moodboard-collage__item" data-zoom-img="${escapeHtml(ref.image)}" data-zoom-title="${escapeHtml(ref.caption)}" data-zoom-desc="${escapeHtml(ref.desc)}">
+                <img src="${ref.image}" alt="${escapeHtml(ref.caption)}" />
+                <figcaption class="moodboard-collage__cap">${escapeHtml(ref.caption)}</figcaption>
+              </figure>
+            `
+              )
+              .join('')}
+          </div>
+
+          ${
+            chosenPalettes.length
+              ? `
+            <div style="margin-top:1.35rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;">
+              ${chosenPalettes
+                .map(
+                  (pal) => `
+                <div>
+                  <span style="font-size:0.8rem;color:var(--ink-secondary);">${escapeHtml(pal.title)} · <em>${escapeHtml(pal.feeling)}</em></span>
+                  <div class="swatch-bar">
+                    ${pal.colors.map((hex) => `<span style="background:${hex}" title="${hex}"></span>`).join('')}
+                  </div>
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+          `
+              : ''
+          }
+        </div>
+
+        <!-- 3. PAINEL COMPLETO DE TODAS AS ESCOLHAS + EXPLICAÇÃO + EDITAR -->
+        <div class="reveal-section-head reveal-stagger-3">
+          <div>
+            <p class="eyebrow" style="margin-bottom:0.35rem;">Leitura Detalhada & Controle Total</p>
+            <h2 class="reveal-section-head__title">Todas as suas escolhas — edite o que quiser</h2>
+          </div>
+          <p class="reveal-section-head__sub">Ao alterar qualquer etapa, seu moodboard e sua leitura se atualizam na hora.</p>
+        </div>
+
+        <div class="editable-choices-grid reveal-stagger-3">
+          <!-- Bloco 02: Ambientes -->
+          <article class="editable-card">
+            <div class="editable-card__top">
+              <div>
+                <span class="choice-card__kicker">Capítulo 02</span>
+                <h3 class="editable-card__title">Ambientes de Conexão</h3>
+              </div>
+              <button type="button" class="btn-edit-inline no-print" data-edit-step="2">${editIcon}<span>Editar</span></button>
+            </div>
+            <div class="editable-card__thumbs">
+              ${
+                chosenEnvs.length
+                  ? chosenEnvs
+                      .map(
+                        (e) => `
+                    <span class="mini-ref-chip">
+                      <img src="${e.image}" alt="" />
+                      <span>${escapeHtml(e.title)}</span>
+                    </span>
+                  `
+                      )
+                      .join('')
+                  : '<span class="combo-tag">Nenhuma seleção registrada</span>'
+              }
+            </div>
+            <p class="choice-insight"><strong>O que isso revela:</strong> ${escapeHtml(envInsight)}</p>
+          </article>
+
+          <!-- Bloco 03: Estilos -->
+          <article class="editable-card">
+            <div class="editable-card__top">
+              <div>
+                <span class="choice-card__kicker">Capítulo 03</span>
+                <h3 class="editable-card__title">Linguagens & Estilos</h3>
+              </div>
+              <button type="button" class="btn-edit-inline no-print" data-edit-step="3">${editIcon}<span>Editar</span></button>
+            </div>
+            <div class="editable-card__thumbs">
+              ${
+                chosenStyles.length
+                  ? chosenStyles
+                      .map(
+                        (st) => `
+                    <span class="mini-ref-chip">
+                      <img src="${st.image}" alt="" />
+                      <span>${escapeHtml(st.title)}</span>
+                    </span>
+                  `
+                      )
+                      .join('')
+                  : '<span class="combo-tag">Exploração aberta</span>'
+              }
+            </div>
+            <p class="choice-insight"><strong>O que isso revela:</strong> ${escapeHtml(styleInsight)}</p>
+          </article>
+
+          <!-- Bloco 04: Paletas -->
+          <article class="editable-card">
+            <div class="editable-card__top">
+              <div>
+                <span class="choice-card__kicker">Capítulo 04</span>
+                <h3 class="editable-card__title">Paletas e Sensações</h3>
+              </div>
+              <button type="button" class="btn-edit-inline no-print" data-edit-step="4">${editIcon}<span>Editar</span></button>
+            </div>
+            <div class="editable-card__thumbs">
+              ${
+                chosenPalettes.length
+                  ? chosenPalettes
+                      .map(
+                        (pal) => `
+                    <span class="mini-ref-chip">
+                      <span class="palette-dot" style="width:20px;height:20px;background:${pal.colors[2]};"></span>
+                      <span>${escapeHtml(pal.title)}</span>
+                    </span>
+                  `
+                      )
+                      .join('')
+                  : '<span class="combo-tag">Nenhuma paleta selecionada</span>'
+              }
+            </div>
+            <p class="choice-insight"><strong>O que isso revela:</strong> ${escapeHtml(paletteInsight)}</p>
+          </article>
+
+          <!-- Bloco 05: Materiais -->
+          <article class="editable-card">
+            <div class="editable-card__top">
+              <div>
+                <span class="choice-card__kicker">Capítulo 05</span>
+                <h3 class="editable-card__title">Materiais e Texturas</h3>
+              </div>
+              <button type="button" class="btn-edit-inline no-print" data-edit-step="5">${editIcon}<span>Editar</span></button>
+            </div>
+            <div class="editable-card__thumbs">
+              ${
+                chosenMaterials.length
+                  ? chosenMaterials
+                      .map(
+                        (m) => `
+                    <span class="mini-ref-chip">
+                      <span class="palette-dot" style="width:20px;height:20px;background:${m.swatch};"></span>
+                      <span>${escapeHtml(m.title)}</span>
+                    </span>
+                  `
+                      )
+                      .join('')
+                  : '<span class="combo-tag">Nenhum material selecionado</span>'
+              }
+            </div>
+            <p class="choice-insight"><strong>O que isso revela:</strong> ${escapeHtml(matInsight)}</p>
+          </article>
+
+          <!-- Bloco 06: Combinações -->
+          <article class="editable-card">
+            <div class="editable-card__top">
+              <div>
+                <span class="choice-card__kicker">Capítulo 06</span>
+                <h3 class="editable-card__title">Combinações Favoritas</h3>
+              </div>
+              <button type="button" class="btn-edit-inline no-print" data-edit-step="6">${editIcon}<span>Editar</span></button>
+            </div>
+            <div class="editable-card__thumbs">
+              ${chosenCombos.map((cmb) => `<span class="combo-tag">${escapeHtml(cmb.title)}</span>`).join('')}
+              ${
+                customParts.length
+                  ? `<span class="combo-tag" style="background:var(--bronze-soft);color:var(--bronze-dark);">Sua tríade: ${customParts.map((x) => escapeHtml(x.label)).join(' + ')}</span>`
+                  : ''
+              }
+              ${!chosenCombos.length && !customParts.length ? '<span class="combo-tag">A definir em conjunto</span>' : ''}
+            </div>
+            <p class="choice-insight"><strong>O que isso revela:</strong> ${escapeHtml(comboInsight)}</p>
+          </article>
+
+          <!-- Bloco 07: Iluminação -->
+          <article class="editable-card">
+            <div class="editable-card__top">
+              <div>
+                <span class="choice-card__kicker">Capítulo 07</span>
+                <h3 class="editable-card__title">Iluminação e Atmosfera</h3>
+              </div>
+              <button type="button" class="btn-edit-inline no-print" data-edit-step="7">${editIcon}<span>Editar</span></button>
+            </div>
+            <div class="editable-card__thumbs">
+              <span class="combo-tag" style="background:var(--bronze-soft);color:var(--bronze-dark);">${escapeHtml(activeScenario.title)} · ${escapeHtml(activeScenario.kelvin)}</span>
+              ${chosenLighting.map((l) => `<span class="combo-tag">${escapeHtml(l.title)}</span>`).join('')}
+            </div>
+            <p class="choice-insight"><strong>O que isso revela:</strong> ${escapeHtml(lightInsight)}</p>
+          </article>
+
+          <!-- Bloco 08: Forma de Viver -->
+          <article class="editable-card">
+            <div class="editable-card__top">
+              <div>
+                <span class="choice-card__kicker">Capítulo 08</span>
+                <h3 class="editable-card__title">Personalidade & Forma de Viver</h3>
+              </div>
+              <button type="button" class="btn-edit-inline no-print" data-edit-step="8">${editIcon}<span>Editar</span></button>
+            </div>
+            <div class="editable-card__thumbs">
+              ${chosenFeelings.map((f) => `<span class="combo-tag">${escapeHtml(f.title)}</span>`).join('')}
+              ${chosenRest ? `<span class="mini-ref-chip"><img src="${chosenRest.image}" alt="" /><span>${escapeHtml(chosenRest.title)}</span></span>` : ''}
+              ${chosenSpecials.map((sp) => `<span class="combo-tag">${escapeHtml(sp.label)}</span>`).join('')}
+              ${!chosenFeelings.length && !chosenRest && !chosenSpecials.length ? '<span class="combo-tag">Nenhuma sensação registrada</span>' : ''}
+            </div>
+            <p class="choice-insight"><strong>O que isso revela:</strong> ${escapeHtml(livingInsight)}</p>
+          </article>
+
+          <!-- Bloco 09: Contexto do Projeto -->
+          <article class="editable-card">
+            <div class="editable-card__top">
+              <div>
+                <span class="choice-card__kicker">Capítulo 09</span>
+                <h3 class="editable-card__title">Contexto do Projeto</h3>
+              </div>
+              <button type="button" class="btn-edit-inline no-print" data-edit-step="9">${editIcon}<span>Editar</span></button>
+            </div>
+            <div class="editable-card__thumbs">
+              ${
+                projectSummaryParts.length
+                  ? projectSummaryParts.map((item) => `<span class="combo-tag">${escapeHtml(item)}</span>`).join('')
+                  : '<span class="combo-tag">Informações opcionais ainda não preenchidas</span>'
+              }
+              ${(p.rooms || []).map((rm) => `<span class="combo-tag">${escapeHtml(rm)}</span>`).join('')}
+            </div>
+            <p class="choice-insight">
+              <strong>Resumo prático:</strong>
+              ${
+                p.needs || p.restrictions
+                  ? escapeHtml([p.needs, p.restrictions].filter(Boolean).join(' · '))
+                  : 'Quando estiver pronto, adicione cidade, ambientes ou necessidades específicas para agilizar o primeiro encontro.'
+              }
+            </p>
+          </article>
+        </div>
+
+        <!-- 4. COMPARTILHAR COM A VIDART / SALVAR PDF / LGPD -->
+        <div class="reveal-cta-box reveal-stagger-4 no-print">
+          <div style="max-width:54ch;">
+            <p class="eyebrow" style="margin-bottom:0.35rem;">Próximo Passo</p>
+            <h2 style="font-family:var(--font-display);font-size:1.9rem;font-weight:400;">Compartilhe sua descoberta com a Vidart</h2>
+            <p style="font-size:0.9rem;color:var(--ink-secondary);margin-top:0.35rem;">
+              Este perfil traduz suas preferências reais em um ponto de partida claro para que nossa equipe desenvolva uma proposta verdadeiramente alinhada ao seu olhar.
             </p>
             ${
               !c.lgpdConsent
                 ? `
-              <label class="lgpd-box" style="margin-top:0.9rem;">
+              <label class="lgpd-box" style="margin-top:1rem;">
                 <input type="checkbox" id="revealLgpdCheck" />
                 <span class="lgpd-box__text">Autorizo o armazenamento deste perfil pela VA Arquitetura e Interiores exclusivamente para atendimento e briefing do meu projeto (LGPD).</span>
               </label>
@@ -1183,12 +1489,11 @@
             }
           </div>
 
-          <div style="display:flex;flex-wrap:wrap;gap:0.7rem;align-items:center;">
+          <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center;">
             <button type="button" class="btn-primary" id="submitProfileBtn">
               <span>${isSubmitted ? 'Atualizar perfil enviado' : 'Enviar perfil para a Vidart'}</span>
             </button>
             <button type="button" class="btn-secondary" id="printPdfBtn">Salvar Dossiê (PDF)</button>
-            <button type="button" class="btn-link-subtle" id="reviewChoicesBtn">Revisar escolhas</button>
             <button type="button" class="btn-link-subtle" id="eraseMyDataBtn" style="color:#7A3B3B;">Excluir meus dados</button>
           </div>
         </div>
@@ -1201,6 +1506,22 @@
   // =========================================================================
 
   function bindStageEvents(step) {
+    // Banner de retorno rápido ao perfil final (quando editando a partir da Etapa 10)
+    const returnBannerBtn = document.getElementById('returnToRevealBannerBtn');
+    if (returnBannerBtn) {
+      returnBannerBtn.addEventListener('click', () => goToStep(10));
+    }
+
+    // Botões "Editar" inline de cada bloco na Etapa 10
+    els.stageContainer.querySelectorAll('[data-edit-step]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = Number(btn.dataset.editStep);
+        if (target >= 2 && target <= 9) {
+          goToStep(target, { returnToReveal: true });
+        }
+      });
+    });
+
     // Etapa 01
     const startBtn = document.getElementById('startJourneyBtn');
     if (startBtn) {
@@ -1212,6 +1533,7 @@
         draft = STORE.clearDraft();
         ui.activeStyleGroup = null;
         ui.submitFeedback = null;
+        ui.returnToReveal = false;
         render();
       });
     }
@@ -1828,8 +2150,12 @@
   // =========================================================================
 
   els.brandHomeBtn.addEventListener('click', () => goToStep(1));
-  els.prevStepBtn.addEventListener('click', () => goToStep(draft.currentStep - 1));
-  els.nextStepBtn.addEventListener('click', () => goToStep(draft.currentStep + 1));
+  els.prevStepBtn.addEventListener('click', () =>
+    goToStep(ui.returnToReveal ? 10 : draft.currentStep - 1)
+  );
+  els.nextStepBtn.addEventListener('click', () =>
+    goToStep(ui.returnToReveal ? 10 : draft.currentStep + 1)
+  );
   els.skipStepBtn.addEventListener('click', () => goToStep(draft.currentStep + 1));
 
   els.lightboxCloseBtn.addEventListener('click', closeLightbox);
