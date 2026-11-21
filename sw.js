@@ -1,16 +1,25 @@
-// Service Worker — VA. Atelier Digital v2.1
-const CACHE_NAME = 'va-atelier-v2';
+// Service Worker — VA. Arquitetura & Interiores — Jornada de Descoberta v3
+const CACHE_NAME = 'va-atelier-v3';
 
 const SHELL_ASSETS = [
   './',
   './index.html',
   './style.css',
   './data.js',
+  './storage.js',
   './app.js',
   './manifest.json',
   './icon.svg',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './assets/va-ref-01.webp',
+  './assets/va-ref-02.webp',
+  './assets/va-ref-03.webp',
+  './assets/va-ref-04.webp',
+  './assets/va-ref-05.webp',
+  './assets/va-ref-06.webp',
+  './assets/va-ref-07.webp',
+  './assets/va-ref-08.webp'
 ];
 
 self.addEventListener('install', (event) => {
@@ -85,14 +94,9 @@ async function staleWhileRevalidate(request) {
     })
     .catch(() => null);
 
-  if (cached) {
-    return cached;
-  }
-
+  if (cached) return cached;
   const networkResponse = await networkPromise;
-  if (networkResponse) {
-    return networkResponse;
-  }
+  if (networkResponse) return networkResponse;
   return Response.error();
 }
 

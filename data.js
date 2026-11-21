@@ -1,479 +1,577 @@
 // =========================================================================
-// VA. ARQUITETURA & INTERIORES — BRIEFING DIGITAL v2.1
-// Dados Curatoriais, Escopo Técnico, Materialidade & Parâmetros de Dossiê
+// VA. ARQUITETURA & INTERIORES — CURADORIA INTERATIVA DE DESCOBERTA ESTÉTICA
+// Catálogo estruturado com identificadores estáveis, tags de afinidade
+// e referências fotográficas de padrão editorial.
 // =========================================================================
 
 window.VA_DATA = {
   brand: {
-    name: "VA. ARQUITETURA",
-    fullName: "VA Arquitetura & Interiores",
-    studioWhatsapp: "",
-    // Hash SHA-256 da chave de acesso administrativa
-    adminPinHash: "0bb7ca9c5fa96f7c95c79f405fd12d1b9ae6ec4c64d7e006c293eb759489102c"
+    name: 'VA Arquitetura e Interiores',
+    shortName: 'VA',
+    tagline: 'Todo espaço começa com uma forma única de sentir.'
   },
 
-  scopeOptions: {
-    typologies: [
-      { id: "tip_apartamento", label: "Apartamento" },
-      { id: "tip_cobertura", label: "Cobertura / Duplex" },
-      { id: "tip_casa", label: "Casa Residencial" },
-      { id: "tip_campo_praia", label: "Casa de Campo ou Praia" }
-    ],
-    stages: [
-      { id: "est_planta", label: "Na Planta / Construção" },
-      { id: "est_reforma", label: "Reforma Completa" },
-      { id: "est_atualizacao", label: "Atualização de Interiores" }
-    ],
-    areas: [
-      { id: "met_90", label: "< 90 m²" },
-      { id: "met_180", label: "90 – 180 m²" },
-      { id: "met_350", label: "180 – 350 m²" },
-      { id: "met_350_plus", label: "> 350 m²" }
-    ],
-    rooms: [
-      { id: "amb_completo", label: "Projeto Completo" },
-      { id: "amb_living", label: "Living & Jantar" },
-      { id: "amb_cozinha", label: "Cozinha & Gourmet" },
-      { id: "amb_hall", label: "Hall & Lavabo" },
-      { id: "amb_suite", label: "Suíte Master" },
-      { id: "amb_closet", label: "Closet" },
-      { id: "amb_banhos", label: "Salas de Banho" },
-      { id: "amb_office", label: "Home Office" },
-      { id: "amb_varanda", label: "Varanda & Externo" }
-    ],
-    household: [
-      { id: "comp_individual", label: "Individual" },
-      { id: "comp_casal", label: "Casal" },
-      { id: "comp_filhos_pequenos", label: "Filhos Pequenos" },
-      { id: "comp_filhos_adolescentes", label: "Filhos Adolescentes" },
-      { id: "comp_pets", label: "Pets em Casa" },
-      { id: "comp_hospedes", label: "Hóspedes Frequentes" }
-    ],
-    specTiers: [
-      {
-        id: "spec_racionalizado",
-        label: "Racionalizado / Essencial",
-        desc: "Soluções diretas, marcenaria limpa de alto custo-benefício e seleção criteriosa de revestimentos."
-      },
-      {
-        id: "spec_alto_padrao",
-        label: "Alto Padrão",
-        desc: "Pedras naturais selecionadas, marcenaria em lâmina natural, iluminação cênica e mobiliário assinado."
-      },
-      {
-        id: "spec_bespoke",
-        label: "Bespoke / Colecionável",
-        desc: "Peças exclusivas sob desenho do estúdio, mármores raros, automação integral e curadoria de arte."
-      }
-    ],
-    timelines: [
-      { id: "prz_imediato", label: "Imediato (0–3 meses)" },
-      { id: "prz_planejado", label: "Planejado (3–6 meses)" },
-      { id: "prz_longo", label: "Longo Prazo (6–12+ meses)" }
-    ]
-  },
+  chapters: [
+    { step: 1, code: '01', label: 'Boas-vindas', short: 'Início' },
+    { step: 2, code: '02', label: 'Conexão com os Ambientes', short: 'Ambientes' },
+    { step: 3, code: '03', label: 'Descoberta dos Estilos', short: 'Estilos' },
+    { step: 4, code: '04', label: 'Paletas e Sensações', short: 'Paletas' },
+    { step: 5, code: '05', label: 'Materiais e Texturas', short: 'Materiais' },
+    { step: 6, code: '06', label: 'Combinações de Materiais', short: 'Combinações' },
+    { step: 7, code: '07', label: 'Iluminação e Atmosfera', short: 'Iluminação' },
+    { step: 8, code: '08', label: 'Personalidade e Forma de Viver', short: 'Viver' },
+    { step: 9, code: '09', label: 'Contexto do Projeto', short: 'Projeto' },
+    { step: 10, code: '10', label: 'Sua Identidade Estética', short: 'Identidade' }
+  ],
 
-  cards: [
+  // ETAPA 02 — CONEXÃO COM OS AMBIENTES
+  environments: [
     {
-      id: "c_01",
-      index: "01",
-      env: "Estar",
-      title: "Volumetria Orgânica e Estofados Curvos",
-      variable: "Geometria do Mobiliário",
-      desc: "Formas fluidas e estofados de silhueta curva que suavizam a arquitetura ortogonal e convidam à permanência.",
-      image: "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
+      id: 'env_organico_mineral',
+      title: 'Fluidez Mineral e Luz Suave',
+      subtitle: 'Paredes curvas em reboco mineral, sofá orgânico em linho cru e carvalho claro.',
+      atmosphere: 'Calma acolhedora',
+      image: 'assets/va-ref-01.webp',
+      tags: ['organico', 'natural', 'claro', 'suave', 'contemporaneo']
     },
     {
-      id: "c_02",
-      index: "02",
-      env: "Estar",
-      title: "Concreto Aparente e Madeira Natural",
-      variable: "Contraste Material Bruto × Quente",
-      desc: "Equilíbrio entre a tectonicidade do concreto arquitetônico e o calor tátil da madeira em painéis contínuos.",
-      image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
+      id: 'env_classico_contemporaneo',
+      title: 'Proporção Clássica Atualizada',
+      subtitle: 'Boiseries sutis, pé-direito generoso e equilíbrio entre tradição e leveza.',
+      atmosphere: 'Elegância serena',
+      image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1200&q=85',
+      tags: ['classico', 'neoclassico', 'elegante', 'claro']
     },
     {
-      id: "c_03",
-      index: "03",
-      env: "Estar",
-      title: "Molduras Clássicas Contemporâneas",
-      variable: "Linguagem Arquitetônica de Paredes",
-      desc: "Boiseries contemporâneas em relevo sutil, alinhadas à proporção do pé-direito e à iluminação rasante.",
-      image: "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
+      id: 'env_minimalismo_zen',
+      title: 'Silêncio e Essencialidade',
+      subtitle: 'Superfícies contínuas em pedra natural, luz zenital e ausência de ruído visual.',
+      atmosphere: 'Pureza contemplativa',
+      image: 'assets/va-ref-06.webp',
+      tags: ['minimalista', 'japandi', 'natural', 'monocromatico']
     },
     {
-      id: "c_04",
-      index: "04",
-      env: "Jantar",
-      title: "Mesa Monolítica em Pedra Natural",
-      variable: "Peça Central Escultural",
-      desc: "Bloco escultórico em mármore ou quartzito natural como âncora visual e ponto de convergência do jantar.",
-      image: "https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
+      id: 'env_intimista_madeira',
+      title: 'Refúgio Envolvente em Madeira',
+      subtitle: 'Estante em carvalho natural, pedra bruta e luminária de alabastro em penumbra suave.',
+      atmosphere: 'Intimidade intelectual',
+      image: 'assets/va-ref-07.webp',
+      tags: ['moderno', 'rustico_sofisticado', 'profundo', 'intimista', 'natural']
     },
     {
-      id: "c_05",
-      index: "05",
-      env: "Jantar",
-      title: "Transparência Total para Paisagem",
-      variable: "Abertura e Luz Natural",
-      desc: "Esquadrias minimalistas piso-teto que dissolvem o limite entre a área social e a paisagem exterior.",
-      image: "https://images.unsplash.com/photo-1615873968403-89e068629265?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
+      id: 'env_arquitetura_paisagem',
+      title: 'Abertura Total e Concreto Quente',
+      subtitle: 'Integração com a paisagem externa, planos horizontais amplos e luz natural abundante.',
+      atmosphere: 'Amplitude e presença',
+      image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85',
+      tags: ['moderno', 'contemporaneo', 'industrial', 'contraste']
     },
     {
-      id: "c_06",
-      index: "06",
-      env: "Cozinha",
-      title: "Ilha Monolítica Aberta ao Convívio",
-      variable: "Protagonismo da Ilha Gourmet",
-      desc: "Bancada central contínua que integra o preparo culinário à conversa, com linhas limpas e apoio imediato.",
-      image: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
-    },
-    {
-      id: "c_07",
-      index: "07",
-      env: "Cozinha",
-      title: "Marcenaria Oculta com Portas Escamoteáveis",
-      variable: "Camuflagem de Eletros e Bancada",
-      desc: "Painéis piso-teto que recolhem equipamentos e área de apoio, preservando a leitura serena do estar.",
-      image: "https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
-    },
-    {
-      id: "c_08",
-      index: "08",
-      env: "Hall",
-      title: "Hall Galeria com Pedra e Arte",
-      variable: "Ritual de Chegada",
-      desc: "Transição contemplativa entre o externo e o íntimo, marcada por piso mineral, luz focal e obra de arte.",
-      image: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
-    },
-    {
-      id: "c_09",
-      index: "09",
-      env: "Lavabo",
-      title: "Lavabo Cenográfico com Cuba Esculpida",
-      variable: "Dramaturgia em Pequena Escala",
-      desc: "Atmosfera intimista com iluminação de destaque, pedra natural esculpida e textura mineral envolvente.",
-      image: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
-    },
-    {
-      id: "c_10",
-      index: "10",
-      env: "Home Office",
-      title: "Escritório Revestido em Madeira",
-      variable: "Envolvimento Acústico e Foco",
-      desc: "Superfícies amadeiradas contínuas que absorvem reverberação e constroem um ambiente de concentração profunda.",
-      image: "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
-    },
-    {
-      id: "c_11",
-      index: "11",
-      env: "Biblioteca",
-      title: "Estante Arquitetônica Piso-Teto",
-      variable: "Exposição de Acervo e Livros",
-      desc: "Estrutura vertical modulada para abrigar livros, objetos afetivos e iluminação integrada por prateleira.",
-      image: "https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
-    },
-    {
-      id: "c_12",
-      index: "12",
-      env: "Suíte Master",
-      title: "Cabeceira em Marcenaria com Luz Indireta",
-      variable: "Enquadramento da Cama",
-      desc: "Plano horizontal de madeira e tecido com luz quente embutida, desenhando repouso visual ao redor da cama.",
-      image: "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
-    },
-    {
-      id: "c_13",
-      index: "13",
-      env: "Suíte Master",
-      title: "Refúgio Monocromático em Linho",
-      variable: "Redução Visual para Descanso",
-      desc: "Paleta contida e têxteis naturais lavados que reduzem estímulos visuais e privilegiam a qualidade do sono.",
-      image: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
-    },
-    {
-      id: "c_14",
-      index: "14",
-      env: "Closet",
-      title: "Vitrine em Vidro Reflecta e LED Linear",
-      variable: "Transparência e Exibição",
-      desc: "Portas em vidro fumê reflexivo com perfis metálicos delgados e iluminação interna automática por sensor.",
-      image: "https://images.unsplash.com/photo-1558997519-83ea9252edf8?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
-    },
-    {
-      id: "c_15",
-      index: "15",
-      env: "Closet",
-      title: "Marcenaria Lisa Piso-Teto (Fecho-Toque)",
-      variable: "Ordem Visual Absoluta",
-      desc: "Armários fechados sem puxadores aparentes, alinhados ao plano da parede para silêncio visual completo.",
-      image: "https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
-    },
-    {
-      id: "c_16",
-      index: "16",
-      env: "Sala de Banho",
-      title: "Banheira Freestanding de Imersão",
-      variable: "Experiência de SPA Particular",
-      desc: "Peça de imersão solta no ambiente, valorizada por revestimentos minerais contínuos e luz regulável.",
-      image: "https://images.unsplash.com/photo-1600566752355-35792bedcfea?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
-    },
-    {
-      id: "c_17",
-      index: "17",
-      env: "Sala de Banho",
-      title: "Cuba Dupla e Metais Escovados de Parede",
-      variable: "Simetria e Metais Arquitetônicos",
-      desc: "Bancada dupla equilibrada com bicas embutidas na parede e acabamento metálico escovado de baixa refletância.",
-      image: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
-    },
-    {
-      id: "c_18",
-      index: "18",
-      env: "Varanda",
-      title: "Terraço Gourmet com Paisagismo Integrado",
-      variable: "Extensão Exterior da Sala",
-      desc: "Continuidade de piso e linguagem material entre interior e terraço, com vegetação estruturada e estar ao ar livre.",
-      image: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=85",
-      aspect: "4/3"
+      id: 'env_convivio_pedra',
+      title: 'Convívio em Pedra e Carvalho',
+      subtitle: 'Arco mineral enquadrando mesa monolítica em travertino e madeira de toque quente.',
+      atmosphere: 'Encontros atemporais',
+      image: 'assets/va-ref-04.webp',
+      tags: ['contemporaneo', 'organico', 'escandinavo', 'natural', 'claro']
     }
   ],
 
-  rituals: [
-    { id: "rit_jantares", label: "Receber para Jantares", iconKey: "wine" },
-    { id: "rit_culinaria", label: "Culinária Diária", iconKey: "utensils" },
-    { id: "rit_trabalho", label: "Trabalho Remoto com Reuniões", iconKey: "laptop" },
-    { id: "rit_leitura", label: "Leitura & Silêncio", iconKey: "book" },
-    { id: "rit_cinema", label: "Cinema em Casa", iconKey: "film" },
-    { id: "rit_pets", label: "Convivência com Pets", iconKey: "paw" },
-    { id: "rit_biofilia", label: "Biofilia & Plantas", iconKey: "leaf" },
-    { id: "rit_cafe", label: "Ritual do Café / Chá", iconKey: "coffee" },
-    { id: "rit_banho", label: "Banho Terapêutico", iconKey: "bath" },
-    { id: "rit_adega", label: "Adega & Degustação", iconKey: "bottle" },
-    { id: "rit_movimento", label: "Prática de Movimento & Bem-Estar", iconKey: "activity" },
-    { id: "rit_infantil", label: "Convivência Infantil", iconKey: "blocks" }
-  ],
-
-  tradeoffs: [
+  // ETAPA 03 — DESCOBERTA DOS ESTILOS (11 estilos em 3 grupos equilibrados)
+  styleGroups: [
     {
-      id: "tr_cozinha",
-      label: "Cozinha",
-      optionA: {
-        id: "A",
-        title: "Totalmente Integrada ao Living",
-        spec: "Bancada contínua e permeabilidade total com o estar e jantar."
-      },
-      optionB: {
-        id: "B",
-        title: "Com Painéis de Correr para Isolamento",
-        spec: "Esquadria ou painéis piso-teto para fechar o ambiente durante o preparo."
-      }
+      id: 'grp_pureza',
+      title: 'Linhas, Proporção e Silêncio',
+      subtitle: 'Composições limpas onde a arquitetura, o vazio e a luz conduzem o olhar.',
+      tags: ['contemporaneo', 'minimalista', 'moderno', 'japandi']
     },
     {
-      id: "tr_tv_suite",
-      label: "TV na Suíte Master",
-      optionA: {
-        id: "A",
-        title: "Sem TV (Refúgio Puro)",
-        spec: "Ambiente dedicado ao descanso, leitura e ausência de telas."
-      },
-      optionB: {
-        id: "B",
-        title: "TV Integrada ou Oculta na Marcenaria",
-        spec: "Painel limpo ou mecanismo oculto mantendo a serenidade do quarto."
-      }
+      id: 'grp_materia',
+      title: 'Matéria, Natureza e Textura',
+      subtitle: 'Espaços guiados pelo toque autêntico de madeiras, pedras, fibras e contrastes reais.',
+      tags: ['organico', 'escandinavo', 'rustico_sofisticado', 'industrial']
     },
     {
-      id: "tr_iluminacao",
-      label: "Iluminação",
-      optionA: {
-        id: "A",
-        title: "2700K — Quente, Cênica e Indireta",
-        spec: "Temperatura acolhedora, baixo ofuscamento e foco em atmosfera."
-      },
-      optionB: {
-        id: "B",
-        title: "3000K — Equilibrada e Funcional",
-        spec: "Luz neutra-quente para leitura nítida e fidelidade cromática diária."
-      }
-    },
-    {
-      id: "tr_automacao",
-      label: "Automação",
-      optionA: {
-        id: "A",
-        title: "Comandos Táteis de Design",
-        spec: "Interruptores arquitetônicos em metal ou pedra com operação direta."
-      },
-      optionB: {
-        id: "B",
-        title: "Cenas de Luz, Cortinas Motorizadas e Som Embutido",
-        spec: "Automação integrada por cenas programáveis e acionamento discreto."
-      }
-    },
-    {
-      id: "tr_climatizacao",
-      label: "Climatização",
-      optionA: {
-        id: "A",
-        title: "Sistema Dutado / Grelha Linear Invisível",
-        spec: "Difusão linear embutida no forro sem equipamentos aparentes."
-      },
-      optionB: {
-        id: "B",
-        title: "Aparelhos Split Discretos",
-        spec: "Unidades estrategicamente posicionadas ou embutidas em marcenaria."
-      }
-    },
-    {
-      id: "tr_acustica",
-      label: "Conforto Acústico",
-      optionA: {
-        id: "A",
-        title: "Isolamento Reforçado (Janelas/Portas Acústicas)",
-        spec: "Vedação perimetral, vidros laminados duplos e tratamento acústico."
-      },
-      optionB: {
-        id: "B",
-        title: "Conforto Acústico Padrão",
-        spec: "Esquadrias convencionais equilibradas com absorção por têxteis e tapetes."
-      }
+      id: 'grp_expressao',
+      title: 'História, Ritmo e Personalidade',
+      subtitle: 'Referências atemporais, simetrias elegantes e curadoria com identidade marcante.',
+      tags: ['classico', 'neoclassico', 'ecletico']
     }
   ],
 
-  ergonomics: {
-    bedSizes: [
-      { id: "cama_queen", label: "Queen" },
-      { id: "cama_king", label: "King" },
-      { id: "cama_super_king", label: "Super King" }
-    ],
-    bathBasins: [
-      { id: "cuba_unica", label: "Cuba Única Ampla" },
-      { id: "cuba_dupla", label: "Cuba Dupla" }
-    ],
-    bathShowers: [
-      { id: "chuveiro_unico", label: "Chuveiro Único" },
-      { id: "chuveiro_duplo", label: "Chuveiro Duplo" }
-    ]
-  },
+  styles: [
+    {
+      id: 'sty_contemporaneo',
+      groupId: 'grp_pureza',
+      title: 'Contemporâneo',
+      desc: 'Equilíbrio atual entre conforto, linhas limpas e materiais nobres sem excessos.',
+      image: 'assets/va-ref-05.webp',
+      tags: ['contemporaneo', 'natural', 'claro']
+    },
+    {
+      id: 'sty_minimalista',
+      groupId: 'grp_pureza',
+      title: 'Minimalista',
+      desc: 'Redução ao essencial, planos contínuos e foco absoluto na proporção e na luz.',
+      image: 'assets/va-ref-06.webp',
+      tags: ['minimalista', 'monocromatico', 'claro']
+    },
+    {
+      id: 'sty_moderno',
+      groupId: 'grp_pureza',
+      title: 'Moderno',
+      desc: 'Geometria precisa, integração espacial, planos horizontais e honestidade estrutural.',
+      image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=85',
+      tags: ['moderno', 'contraste']
+    },
+    {
+      id: 'sty_japandi',
+      groupId: 'grp_pureza',
+      title: 'Japandi',
+      desc: 'Serenidade oriental aliada ao acolhimento nórdico, com madeira clara e beleza imperfeita.',
+      image: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1000&q=85',
+      tags: ['japandi', 'natural', 'suave']
+    },
+    {
+      id: 'sty_organico',
+      groupId: 'grp_materia',
+      title: 'Orgânico',
+      desc: 'Formas curvas, revestimentos minerais e conexão fluida com elementos da natureza.',
+      image: 'assets/va-ref-01.webp',
+      tags: ['organico', 'natural', 'suave']
+    },
+    {
+      id: 'sty_escandinavo',
+      groupId: 'grp_materia',
+      title: 'Escandinavo',
+      desc: 'Luminosidade suave, madeiras claras, tecidos acolhedores e funcionalidade descomplicada.',
+      image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1000&q=85',
+      tags: ['escandinavo', 'claro', 'natural']
+    },
+    {
+      id: 'sty_rustico_sofisticado',
+      groupId: 'grp_materia',
+      title: 'Rústico Sofisticado',
+      desc: 'Pedras brutas, madeiras marcantes e texturas artesanais refinadas por desenho contemporâneo.',
+      image: 'assets/va-ref-07.webp',
+      tags: ['rustico_sofisticado', 'terroso', 'natural']
+    },
+    {
+      id: 'sty_industrial',
+      groupId: 'grp_materia',
+      title: 'Industrial',
+      desc: 'Concreto aparente, esquadrias metálicas escuras e volumes amplos com caráter urbano.',
+      image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1000&q=85',
+      tags: ['industrial', 'contraste', 'profundo']
+    },
+    {
+      id: 'sty_classico',
+      groupId: 'grp_expressao',
+      title: 'Clássico',
+      desc: 'Simetria harmoniosa, molduras arquitetônicas, mármores nobres e elegância perene.',
+      image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1000&q=85',
+      tags: ['classico', 'elegante']
+    },
+    {
+      id: 'sty_neoclassico',
+      groupId: 'grp_expressao',
+      title: 'Neoclássico',
+      desc: 'Releitura leve do clássico, com boiseries delicadas, paleta clara e mobiliário atual.',
+      image: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=1000&q=85',
+      tags: ['neoclassico', 'claro', 'elegante']
+    },
+    {
+      id: 'sty_ecletico',
+      groupId: 'grp_expressao',
+      title: 'Eclético',
+      desc: 'Diálogo curatorial entre épocas, peças de arte, texturas contrastantes e memória afetiva.',
+      image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1000&q=85',
+      tags: ['ecletico', 'profundo', 'terroso']
+    }
+  ],
 
+  // ETAPA 04 — PALETAS E SENSAÇÕES (7 direções aplicadas em ambientes reais)
   palettes: [
     {
-      id: "pal_travertino",
-      title: "Travertino, Linho Cru & Carvalho Natural",
-      desc: "Base mineral luminosa em pedra porosa levigada, madeira clara de veios suaves e tecidos naturais sem brilho.",
-      materials: {
-        stone: "Travertino Romano Levigado",
-        wood: "Carvalho Europeu Natural",
-        fabric: "Linho Cru Lavado & Bouclé",
-        metal: "Latão Champanhe Escovado"
-      },
-      colors: ["#F5F2EC", "#E5DDD0", "#C7B8A1", "#9E8D74", "#5E5345"],
-      image: "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1200&q=85"
+      id: 'pal_neutros_acolhedores',
+      title: 'Tons Neutros e Acolhedores',
+      feeling: 'Calor sereno e permanência',
+      desc: 'Bege mineral, areia, linho cru e amadeirados suaves que abraçam a luz ao longo do dia.',
+      colors: ['#F5F1EA', '#E3D9C9', '#C5B39A', '#9A846B', '#5A4D3F'],
+      image: 'assets/va-ref-01.webp',
+      tags: ['natural', 'claro', 'organico', 'contemporaneo']
     },
     {
-      id: "pal_nogueira",
-      title: "Nogueira, Couro Sela & Terracota Mineral",
-      desc: "Acolhimento profundo com madeiras amendoadas, pigmentos terrosos minerais e couro natural de toque quente.",
-      materials: {
-        stone: "Quartzito Taj Mahal Fosco",
-        wood: "Nogueira Americana Natural",
-        fabric: "Couro Sela & Lã Virgem",
-        metal: "Bronze Oxidado Matte"
-      },
-      colors: ["#EFE9E0", "#D1B399", "#A67658", "#6E4934", "#33241C"],
-      image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1200&q=85"
+      id: 'pal_claras_naturais',
+      title: 'Paletas Claras e Naturais',
+      feeling: 'Frescor luminoso e amplitude',
+      desc: 'Off-white mineral, carvalho lavado e pedras claras que ampliam a percepção espacial.',
+      colors: ['#FAF8F4', '#EFECE6', '#D8D1C4', '#B5AA97', '#7A7265'],
+      image: 'assets/va-ref-04.webp',
+      tags: ['claro', 'escandinavo', 'minimalista', 'japandi']
     },
     {
-      id: "pal_alabastro",
-      title: "Alabastro, Mármore Nero & Bronze Escovado",
-      desc: "Contraste arquitetônico preciso entre superfícies claras acetinadas, pedras escuras marcantes e metais escovados.",
-      materials: {
-        stone: "Mármore Nero Marquina & Alabastro",
-        wood: "Freijó Ebanizado",
-        fabric: "Linho Chumbo & Veludo Seco",
-        metal: "Bronze Escovado Arquitetônico"
-      },
-      colors: ["#F7F6F3", "#D8D5CE", "#8F734B", "#3B3936", "#181715"],
-      image: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=85"
+      id: 'pal_profundas_sofisticadas',
+      title: 'Cores Profundas e Sofisticadas',
+      feeling: 'Envolvimento e elegância noturna',
+      desc: 'Madeiras escuras, grafite, café e bronze envelhecido para atmosferas intimistas.',
+      colors: ['#E8E2D9', '#8E7B68', '#52443A', '#2E2824', '#181614'],
+      image: 'assets/va-ref-07.webp',
+      tags: ['profundo', 'intimista', 'moderno', 'classico']
     },
     {
-      id: "pal_salvia",
-      title: "Cal Mineral, Sálvia & Madeira Lavada",
-      desc: "Atmosfera orgânica silenciosa com pintura à cal, tons botânicos dessaturados e madeira de acabamento lavado.",
-      materials: {
-        stone: "Limestone Cinza & Cal Mineral",
-        wood: "Freijó Lavado Fosco",
-        fabric: "Algodão Orgânico & Cânhamo",
-        metal: "Níquel Escovado Suave"
-      },
-      colors: ["#ECEEE9", "#C6CEC3", "#8E9B8C", "#5B695B", "#2F3830"],
-      image: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=85"
+      id: 'pal_contrastes_marcantes',
+      title: 'Contrastes Marcantes',
+      feeling: 'Precisão arquitetônica e presença',
+      desc: 'Diálogo nítido entre superfícies claras, pedras escuras e linhas metálicas definidas.',
+      colors: ['#F7F6F3', '#D4D0C8', '#967751', '#383532', '#171513'],
+      image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1000&q=85',
+      tags: ['contraste', 'moderno', 'industrial', 'contemporaneo']
+    },
+    {
+      id: 'pal_tons_terrosos',
+      title: 'Tons Terrosos',
+      feeling: 'Conexão tátil e autenticidade',
+      desc: 'Argila, terracota dessaturada, couro sela e nogueira para espaços com alma orgânica.',
+      colors: ['#F1EAE1', '#D4B79E', '#AD7C5D', '#784E37', '#3C281E'],
+      image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1000&q=85',
+      tags: ['terroso', 'organico', 'rustico_sofisticado', 'ecletico']
+    },
+    {
+      id: 'pal_monocromaticas',
+      title: 'Composições Monocromáticas',
+      feeling: 'Silêncio visual e continuidade',
+      desc: 'Variações sutis de uma mesma família mineral, onde a textura substitui o contraste cromático.',
+      colors: ['#F3F1ED', '#E5E1DA', '#CFCAC0', '#A8A296', '#6F6A60'],
+      image: 'assets/va-ref-06.webp',
+      tags: ['monocromatico', 'minimalista', 'japandi']
+    },
+    {
+      id: 'pal_suaves_delicadas',
+      title: 'Cores Suaves e Delicadas',
+      feeling: 'Leveza botânica e tranquilidade',
+      desc: 'Sálvia acinzentado, cal mineral e tons névoa que acalmam o olhar sem perder sofisticação.',
+      colors: ['#F2F3EE', '#DCE0D6', '#B3BCB0', '#7D897B', '#485247'],
+      image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1000&q=85',
+      tags: ['suave', 'escandinavo', 'neoclassico', 'natural']
     }
   ],
 
-  patinaScale: [
+  // ETAPA 05 — MATERIAIS E TEXTURAS (11 materiais com visão Amostra e Aplicação)
+  materials: [
     {
-      value: 1,
-      title: "Pátina Viva",
-      desc: "Mármores levigados, linho puro e latão vivo que registram a passagem do tempo com autenticidade."
+      id: 'mat_madeira_natural',
+      title: 'Madeira Natural',
+      category: 'Orgânico',
+      finish: 'Fosco acetinado · poros abertos',
+      desc: 'Carvalho europeu, freijó ou nogueira com veios autênticos que aquecem a arquitetura.',
+      sampleImage: 'assets/va-ref-02.webp',
+      appliedImage: 'assets/va-ref-07.webp',
+      swatch: 'linear-gradient(135deg, #C7A882 0%, #9E7C56 100%)',
+      tags: ['natural', 'organico', 'escandinavo', 'japandi', 'rustico_sofisticado']
     },
     {
-      value: 2,
-      title: "Natural com Proteção Sutil",
-      desc: "Materiais naturais com impermeabilização mineral invisível, mantendo o toque original com menor absorção."
+      id: 'mat_pedras_naturais',
+      title: 'Pedras Naturais',
+      category: 'Mineral',
+      finish: 'Levigado ou bruto · toque poroso',
+      desc: 'Travertino romano e limestone que reagem à luz rasante com profundidade mineral.',
+      sampleImage: 'assets/va-ref-08.webp',
+      appliedImage: 'assets/va-ref-04.webp',
+      swatch: 'linear-gradient(135deg, #DFD6C7 0%, #BEB09B 100%)',
+      tags: ['natural', 'organico', 'minimalista', 'rustico_sofisticado']
     },
     {
-      value: 3,
-      title: "Equilíbrio entre Matéria e Uso",
-      desc: "Combinação estratégica de pedras e madeiras nobres nas áreas sociais com superfícies resistentes nas zonas úmidas."
+      id: 'mat_marmore',
+      title: 'Mármore',
+      category: 'Mineral',
+      finish: 'Acetinado ou polido suave · veios expressivos',
+      desc: 'Movimento natural de veios que confere presença escultórica a bancadas, pisos e lareiras.',
+      sampleImage: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&w=900&q=85',
+      appliedImage: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1000&q=85',
+      swatch: 'linear-gradient(135deg, #F2EFEA 0%, #CFC8BC 50%, #999085 100%)',
+      tags: ['classico', 'neoclassico', 'elegante', 'contraste']
     },
     {
-      value: 4,
-      title: "Manutenção Otimizada",
-      desc: "Prioridade para quartzitos densos, lâminas tratadas e tecidos de limpeza facilitada sem perder aspecto fosco."
+      id: 'mat_quartzito',
+      title: 'Quartzito',
+      category: 'Mineral',
+      finish: 'Escovado ou fosco · alta resistência',
+      desc: 'Translucidez sutil de pedra nobre com dureza elevada para ilhas e superfícies de uso intenso.',
+      sampleImage: 'assets/va-ref-05.webp',
+      appliedImage: 'assets/va-ref-05.webp',
+      swatch: 'linear-gradient(135deg, #EAE2D6 0%, #C8B9A3 100%)',
+      tags: ['contemporaneo', 'natural', 'claro']
     },
     {
-      value: 5,
-      title: "Alta Praticidade",
-      desc: "Pedras sinterizadas, tecidos antimancha de alta performance e superfícies de manutenção mínima no dia a dia."
+      id: 'mat_metais',
+      title: 'Metais Escovados',
+      category: 'Detalhe',
+      finish: 'Bronze, latão ou níquel fosco',
+      desc: 'Pontos precisos de luz contida em puxadores, luminárias, perfis e metais de banho.',
+      sampleImage: 'assets/va-ref-03.webp',
+      appliedImage: 'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=1000&q=85',
+      swatch: 'linear-gradient(135deg, #B5956B 0%, #735A3B 100%)',
+      tags: ['contemporaneo', 'moderno', 'industrial', 'elegante']
+    },
+    {
+      id: 'mat_vidro',
+      title: 'Vidro Arquitetônico',
+      category: 'Transparência',
+      finish: 'Canelado, fumê ou extraclear',
+      desc: 'Leveza visual, passagem de luz filtrada e reflexão sutil em divisórias e vitrines.',
+      sampleImage: 'https://images.unsplash.com/photo-1558997519-83ea9252edf8?auto=format&fit=crop&w=900&q=85',
+      appliedImage: 'https://images.unsplash.com/photo-1615873968403-89e068629265?auto=format&fit=crop&w=1000&q=85',
+      swatch: 'linear-gradient(135deg, #DCE2E0 0%, #9CA6A3 100%)',
+      tags: ['moderno', 'contemporaneo', 'minimalista']
+    },
+    {
+      id: 'mat_tecidos_fibras',
+      title: 'Tecidos e Fibras Naturais',
+      category: 'Tátil',
+      finish: 'Linho lavado, bouclé, lã e algodão',
+      desc: 'Maciez acústica e conforto imediato em estofados, cortinas fluidas e tapetes artesanais.',
+      sampleImage: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=900&q=85',
+      appliedImage: 'assets/va-ref-01.webp',
+      swatch: 'linear-gradient(135deg, #EDE7DC 0%, #CFC3B1 100%)',
+      tags: ['natural', 'organico', 'escandinavo', 'japandi', 'suave']
+    },
+    {
+      id: 'mat_revestimentos_foscos',
+      title: 'Revestimentos Foscos',
+      category: 'Acabamento',
+      finish: 'Zero brilho · pintura à cal ou microcimento',
+      desc: 'Absorvem o excesso de reflexo, criando planos serenos onde luz e sombra se tornam protagonistas.',
+      sampleImage: 'assets/va-ref-06.webp',
+      appliedImage: 'assets/va-ref-06.webp',
+      swatch: 'linear-gradient(135deg, #E8E3DA 0%, #D3CCC0 100%)',
+      tags: ['minimalista', 'monocromatico', 'organico']
+    },
+    {
+      id: 'mat_superficies_acetinadas',
+      title: 'Superfícies Acetinadas',
+      category: 'Acabamento',
+      finish: 'Toque sedoso · brilho sutil',
+      desc: 'Lacas foscas acetinadas e pedras amaciadas que refletem suavemente a iluminação ambiente.',
+      sampleImage: 'https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=900&q=85',
+      appliedImage: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1000&q=85',
+      swatch: 'linear-gradient(135deg, #F5F2EC 0%, #DDD7CC 100%)',
+      tags: ['contemporaneo', 'neoclassico', 'elegante']
+    },
+    {
+      id: 'mat_com_textura',
+      title: 'Materiais com Textura',
+      category: 'Relevo',
+      finish: 'Ripados, reboco mineral e pedras táteis',
+      desc: 'Relevos sutis que convidam ao toque e enriquecem o ambiente sem depender de cores fortes.',
+      sampleImage: 'assets/va-ref-02.webp',
+      appliedImage: 'assets/va-ref-01.webp',
+      swatch: 'repeating-linear-gradient(90deg, #C9B9A3 0 6px, #B4A086 6px 12px)',
+      tags: ['organico', 'rustico_sofisticado', 'terroso', 'natural']
+    },
+    {
+      id: 'mat_lisas_uniformes',
+      title: 'Superfícies Lisas e Uniformes',
+      category: 'Acabamento',
+      finish: 'Planos contínuos · precisão minimalista',
+      desc: 'Marcenaria sem puxadores e pisos contínuos que transmitem ordem visual e leveza imediata.',
+      sampleImage: 'https://images.unsplash.com/photo-1595428774223-ef52624120d2?auto=format&fit=crop&w=900&q=85',
+      appliedImage: 'https://images.unsplash.com/photo-1600566752355-35792bedcfea?auto=format&fit=crop&w=1000&q=85',
+      swatch: 'linear-gradient(135deg, #EFECE6 0%, #DFDBD2 100%)',
+      tags: ['minimalista', 'moderno', 'monocromatico']
     }
   ],
 
-  priorities: [
-    { id: "prio_marcenaria", label: "Marcenaria Sob Medida", iconKey: "layers" },
-    { id: "prio_pedras", label: "Mármores & Pedras Naturais", iconKey: "gem" },
-    { id: "prio_luminotecnica", label: "Luminotécnica & Automação", iconKey: "sun" },
-    { id: "prio_mobiliario", label: "Mobiliário Assinado", iconKey: "armchair" },
-    { id: "prio_acustica", label: "Acústica & Climatização Embutida", iconKey: "sliders" },
-    { id: "prio_arte", label: "Arte & Curadoria", iconKey: "frame" }
+  // ETAPA 06 — COMBINAÇÕES DE MATERIAIS (5 composições harmoniosas + compositor livre)
+  combinations: [
+    {
+      id: 'cmb_clara_mineral',
+      title: 'Madeira Clara + Pedra Bege + Tecidos Naturais',
+      desc: 'Carvalho europeu natural, travertino romano levigado e linho cru lavado — luminosidade acolhedora.',
+      elements: ['Carvalho Natural', 'Travertino Levigado', 'Linho Cru & Bouclé'],
+      swatches: ['#C8AE8B', '#DFD5C5', '#F2EDE4'],
+      image: 'assets/va-ref-08.webp',
+      tags: ['natural', 'claro', 'organico', 'escandinavo', 'japandi']
+    },
+    {
+      id: 'cmb_escura_bronze',
+      title: 'Madeira Escura + Mármore Claro + Metal Escovado',
+      desc: 'Nogueira amendoada, mármore claro acetinado e bronze escovado — sofisticação de alto contraste.',
+      elements: ['Nogueira Escura', 'Mármore Claro', 'Bronze Escovado'],
+      swatches: ['#4B372A', '#ECE8E1', '#967751'],
+      image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1000&q=85',
+      tags: ['profundo', 'contraste', 'moderno', 'elegante']
+    },
+    {
+      id: 'cmb_neutra_organica',
+      title: 'Superfícies Neutras + Texturas Orgânicas',
+      desc: 'Microcimento mineral fosco, reboco artesanal e cerâmica crua — serenidade tátil.',
+      elements: ['Cal Mineral Fosca', 'Reboco Texturizado', 'Cerâmica Artesanal'],
+      swatches: ['#E5DFD5', '#C9BFA9', '#8E8375'],
+      image: 'assets/va-ref-01.webp',
+      tags: ['organico', 'minimalista', 'monocromatico', 'suave']
+    },
+    {
+      id: 'cmb_pedra_classica',
+      title: 'Pedra Natural + Elementos Clássicos',
+      desc: 'Limestone acetinado, boiseries contemporâneas e metais champanhe — elegância atemporal.',
+      elements: ['Limestone Claro', 'Moldura Acetinada', 'Latão Champanhe'],
+      swatches: ['#E8E3D9', '#F6F3EE', '#B89E74'],
+      image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1000&q=85',
+      tags: ['classico', 'neoclassico', 'elegante', 'claro']
+    },
+    {
+      id: 'cmb_minimalista_detalhes',
+      title: 'Materiais Minimalistas + Detalhes Sofisticados',
+      desc: 'Planos lisos em quartzito, vidro fumê e ferragens em bronze — precisão contemporânea.',
+      elements: ['Quartzito Fosco', 'Vidro Fumê', 'Bronze Arquitetônico'],
+      swatches: ['#DDD7CD', '#6B6A66', '#8F734B'],
+      image: 'assets/va-ref-03.webp',
+      tags: ['minimalista', 'contemporaneo', 'moderno', 'contraste']
+    }
   ],
 
-  vetos: [
-    { id: "veto_porcelanato_brilho", label: "Porcelanato Alto Brilho" },
-    { id: "veto_led_rgb", label: "LED Colorido / RGB" },
-    { id: "veto_sancas_gesso", label: "Sancas Rebuscadas de Gesso" },
-    { id: "veto_laca_brilhante", label: "Laca Brilhante" },
-    { id: "veto_cromado", label: "Cromado Espelhado" },
-    { id: "veto_tapetes_felpudos", label: "Tapetes Felpudos" },
-    { id: "veto_cores_saturadas", label: "Cores Saturadas" },
-    { id: "veto_escuros", label: "Ambientes Muito Escuros" }
-  ]
+  composerSlots: {
+    stone: [
+      { id: 'slot_travertino', label: 'Travertino Romano', swatch: '#DFD5C5' },
+      { id: 'slot_quartzito', label: 'Quartzito Taj Mahal', swatch: '#EAE2D6' },
+      { id: 'slot_marmore_claro', label: 'Mármore Branco', swatch: '#F3F1ED' },
+      { id: 'slot_cal_mineral', label: 'Cal Mineral Fosca', swatch: '#E2DDD4' },
+      { id: 'slot_pedra_escura', label: 'Mármore Nero / Basalto', swatch: '#35322F' }
+    ],
+    wood: [
+      { id: 'slot_carvalho', label: 'Carvalho Claro', swatch: '#C9AE8B' },
+      { id: 'slot_freijo', label: 'Freijó Natural', swatch: '#B38D63' },
+      { id: 'slot_nogueira', label: 'Nogueira Escura', swatch: '#593F2F' },
+      { id: 'slot_ebanizado', label: 'Madeira Ebanizada', swatch: '#282421' }
+    ],
+    accent: [
+      { id: 'slot_linho_bronze', label: 'Linho Cru + Bronze', swatch: '#967751' },
+      { id: 'slot_boucle_latao', label: 'Bouclé + Latão Suave', swatch: '#C6A982' },
+      { id: 'slot_couro_preto', label: 'Couro Sela + Metal Matte', swatch: '#8E5A3C' },
+      { id: 'slot_vidro_niquel', label: 'Vidro Fumê + Níquel', swatch: '#8C8F8B' }
+    ]
+  },
+
+  // ETAPA 07 — ILUMINAÇÃO E ATMOSFERA
+  lightingScenarios: [
+    {
+      id: 'natural_abundante',
+      title: 'Luz Natural Abundante',
+      kelvin: '5000K · Dia',
+      desc: 'Claridade aberta e arejada, evidenciando cores reais e integração com o exterior.',
+      filter: 'brightness(1.06) contrast(1.01) saturate(0.98)',
+      overlay: 'radial-gradient(circle at 75% 18%, rgba(255, 252, 245, 0.24) 0%, rgba(255, 255, 255, 0) 62%)'
+    },
+    {
+      id: 'luz_difusa',
+      title: 'Luz Difusa e Suave',
+      kelvin: '3000K · Equilibrada',
+      desc: 'Iluminação homogênea sem sombras duras, confortável para convivência e leitura.',
+      filter: 'brightness(0.98) contrast(0.96) sepia(0.08)',
+      overlay: 'linear-gradient(180deg, rgba(252, 243, 228, 0.14) 0%, rgba(30, 26, 23, 0.08) 100%)'
+    },
+    {
+      id: 'luz_indireta',
+      title: 'Luz Indireta e Destaque de Texturas',
+      kelvin: '2700K · Cênica',
+      desc: 'Fachos rasantes valorizando relevos da pedra, madeira e planos arquitetônicos.',
+      filter: 'brightness(0.84) contrast(1.12) sepia(0.18)',
+      overlay: 'radial-gradient(ellipse at 28% 35%, rgba(240, 198, 138, 0.28) 0%, rgba(22, 18, 15, 0.42) 72%)'
+    },
+    {
+      id: 'intimista',
+      title: 'Atmosfera Intimista',
+      kelvin: '2400K · Penumbra',
+      desc: 'Contraste suave entre luz quente focal e sombra acolhedora para desacelerar à noite.',
+      filter: 'brightness(0.70) contrast(1.16) sepia(0.24)',
+      overlay: 'radial-gradient(circle at 62% 58%, rgba(235, 180, 110, 0.26) 0%, rgba(16, 13, 11, 0.58) 70%)'
+    }
+  ],
+
+  lightingPreferences: [
+    { id: 'lgt_natural', title: 'Iluminação natural e abundante', desc: 'Aberturas amplas e sensação de espaço arejado.' },
+    { id: 'lgt_indireta', title: 'Luz indireta', desc: 'Fontes ocultas em marcenaria, sancas limpas e cortineiros.' },
+    { id: 'lgt_difusa', title: 'Luz difusa', desc: 'Claridade uniforme, suave e livre de ofuscamento.' },
+    { id: 'lgt_decorativa', title: 'Iluminação decorativa', desc: 'Pendentes, abajures e arandelas como peças escultóricas.' },
+    { id: 'lgt_intimista', title: 'Ambientes intimistas', desc: 'Temperatura quente e pontos focais para relaxar.' },
+    { id: 'lgt_claros_arejados', title: 'Ambientes claros e arejados', desc: 'Luminosidade elevada e leveza durante todo o dia.' },
+    { id: 'lgt_texturas', title: 'Destaque de texturas e materiais', desc: 'Luz rasante revelando pedra, madeira e relevos.' },
+    { id: 'lgt_luz_sombra', title: 'Contrastes suaves entre luz e sombra', desc: 'Profundidade cênica e ritmo visual sereno.' }
+  ],
+
+  // ETAPA 08 — PERSONALIDADE E FORMA DE VIVER
+  homeFeelings: [
+    { id: 'feel_tranquilidade', title: 'Tranquilidade', desc: 'Um refúgio silencioso para desacelerar.' },
+    { id: 'feel_acolhimento', title: 'Acolhimento', desc: 'Calor humano e vontade de permanecer.' },
+    { id: 'feel_elegancia', title: 'Elegância', desc: 'Sofisticação discreta em cada detalhe.' },
+    { id: 'feel_leveza', title: 'Leveza', desc: 'Fluidez, ordem e respiro visual.' },
+    { id: 'feel_natureza', title: 'Conexão com a natureza', desc: 'Luz solar, plantas e matéria autêntica.' },
+    { id: 'feel_praticidade', title: 'Praticidade', desc: 'Beleza que funciona sem esforço no dia a dia.' },
+    { id: 'feel_personalidade', title: 'Personalidade', desc: 'Peças com história e identidade própria.' }
+  ],
+
+  restSpaces: [
+    {
+      id: 'rest_suite_linho',
+      title: 'Silêncio em Linho e Luz Baixa',
+      desc: 'Um refúgio sereno e monocromático dedicado ao descanso profundo.',
+      image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=900&q=85'
+    },
+    {
+      id: 'rest_leitura_madeira',
+      title: 'Canto de Leitura Envolvente',
+      desc: 'Poltrona confortável, madeira natural, livros e luz quente de apoio.',
+      image: 'assets/va-ref-07.webp'
+    },
+    {
+      id: 'rest_spa_mineral',
+      title: 'Ritual de Banho e Descompressão',
+      desc: 'Texturas minerais, água morna e atmosfera de spa particular.',
+      image: 'assets/va-ref-06.webp'
+    },
+    {
+      id: 'rest_estar_aberto',
+      title: 'Estar Amplo Voltado para o Verde',
+      desc: 'Sofá generoso, brisa natural e vista tranquila para contemplar.',
+      image: 'assets/va-ref-01.webp'
+    }
+  ],
+
+  specialElements: [
+    { id: 'spc_luz_manha', label: 'A forma como a luz entra ao longo do dia' },
+    { id: 'spc_toque_materiais', label: 'O toque autêntico dos materiais naturais' },
+    { id: 'spc_receber_bem', label: 'Espaços que convidam a receber pessoas queridas' },
+    { id: 'spc_ordem_invisivel', label: 'Organização inteligente sem poluição visual' },
+    { id: 'spc_arte_memoria', label: 'Obras de arte, livros e objetos com memória' },
+    { id: 'spc_conforto_acustico', label: 'Silêncio, conforto térmico e acústico' }
+  ],
+
+  // ETAPA 09 — CONTEXTO DO PROJETO (sem valores/pacotes comerciais)
+  projectOptions: {
+    types: ['Interiores', 'Reforma', 'Construção', 'Consultoria'],
+    categories: ['Residencial', 'Comercial'],
+    rooms: [
+      'Projeto Completo',
+      'Sala de Estar e Jantar',
+      'Cozinha e Área Gourmet',
+      'Suíte Master',
+      'Quartos',
+      'Banheiros e Lavabo',
+      'Home Office',
+      'Varanda / Área Externa',
+      'Espaço Corporativo / Loja'
+    ],
+    timelines: [
+      'Nos próximos 3 meses',
+      'Entre 3 e 6 meses',
+      'Entre 6 e 12 meses',
+      'Ainda estou planejando'
+    ],
+    investmentRanges: [
+      'Prefiro conversar pessoalmente',
+      'Soluções essenciais e racionalizadas',
+      'Alto padrão com materiais naturais',
+      'Curadoria exclusiva sob medida (bespoke)'
+    ]
+  }
 };
