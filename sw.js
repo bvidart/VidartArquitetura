@@ -1,5 +1,5 @@
-// Service Worker — VA. Arquitetura & Interiores — v7 (Comparação em Bloco Único)
-const CACHE_NAME = 'va-atelier-v7';
+// Service Worker — VA. Arquitetura & Interiores — v8 (Curadoria Alto Padrão + Luz Real)
+const CACHE_NAME = 'va-atelier-v8';
 
 const SHELL_ASSETS = [
   './',
@@ -13,6 +13,13 @@ const SHELL_ASSETS = [
   './icon.svg',
   './icon-192.png',
   './icon-512.png',
+  './assets/hero-living.webp',
+  './assets/env-classico.webp',
+  './assets/env-mediterraneo.webp',
+  './assets/env-minimal.webp',
+  './assets/light-difusa.webp',
+  './assets/light-indireta.webp',
+  './assets/light-intimista.webp',
   './assets/va-ref-01.webp',
   './assets/va-ref-02.webp',
   './assets/va-ref-03.webp',

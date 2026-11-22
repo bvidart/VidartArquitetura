@@ -471,7 +471,7 @@
   }
 
   // -----------------------------------------------------------------------
-  // ETAPA 01/08 — BOAS-VINDAS
+  // ETAPA 01/08 — BOAS-VINDAS (Minimalista, VA ampliado + subtítulo abaixo)
   // -----------------------------------------------------------------------
   function renderStep1Welcome() {
     const hasProgress =
@@ -487,12 +487,21 @@
         </svg>
 
         <div class="welcome-copy">
-          <p class="eyebrow">Curadoria Estética · VA Arquitetura e Interiores</p>
+          <div class="welcome-brand" aria-label="VA Arquitetura e Interiores">
+            <svg class="welcome-brand__emblem" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M5 41V21C5 11.6112 12.6112 4 22 4C31.3888 4 39 11.6112 39 21V41" stroke="#967751" stroke-width="1.2" />
+              <path d="M12.5 16.5L19.2 33.5L25.8 16.5" stroke="#221E1A" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M21.5 33.5L27.4 16.5L32.8 33.5" stroke="#967751" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
+              <line x1="24.2" y1="27.2" x2="30.6" y2="27.2" stroke="#967751" stroke-width="1.1" />
+            </svg>
+            <span class="welcome-brand__sub">Arquitetura e Interiores</span>
+          </div>
+
           <h1 class="welcome-headline">
             Todo espaço começa com uma forma única de <em>sentir.</em>
           </h1>
           <p class="welcome-sub">
-            Vamos descobrir os detalhes que tornam um ambiente verdadeiramente seu e entender o que o seu espaço precisa resolver no dia a dia.
+            Vamos descobrir os detalhes que tornam um ambiente verdadeiramente seu.
           </p>
           <div class="welcome-actions">
             <button type="button" class="btn-primary" id="startJourneyBtn">
@@ -503,12 +512,11 @@
             </button>
             ${hasProgress ? `<button type="button" class="btn-link-subtle" id="resetDraftWelcomeBtn">Recomeçar do zero</button>` : ''}
           </div>
-          <p class="welcome-note">8 etapas breves · 1 pergunta por tela · Salvo automaticamente</p>
         </div>
 
         <div class="welcome-visual">
           <div class="welcome-frame">
-            <img src="${DATA.welcomeHeroImage}" alt="Sala de estar em gesso mineral, linho cru e carvalho sob luz natural" />
+            <img src="${DATA.welcomeHeroImage}" alt="Sala contemporânea alto padrão com travertino, madeira ripada e jardim verde" />
           </div>
         </div>
       </section>
@@ -523,9 +531,7 @@
     return `
       <section class="stage-shell stage-shell--board">
         <div class="stage-header">
-          <p class="eyebrow">Etapa 02/08 · Descoberta Estética (1/3)</p>
           <h1 class="stage-title">Em qual destes espaços você gostaria de <em>estar?</em></h1>
-          <p class="stage-lead">Compare todos os ambientes lado a lado e marque os que despertam afinidade. Clique em <strong>Ampliar</strong> para ver cada foto em tela cheia.</p>
         </div>
 
         <div class="visual-grid visual-grid--board">
@@ -563,9 +569,7 @@
     return `
       <section class="stage-shell stage-shell--board">
         <div class="stage-header">
-          <p class="eyebrow">Etapa 02/08 · Descoberta Estética (2/3)</p>
           <h1 class="stage-title">Quais linguagens arquitetônicas conversam com <em>você?</em></h1>
-          <p class="stage-lead">Compare os estilos na mesma tela e combine livremente entre famílias. Clique em <strong>Ampliar</strong> para ver detalhes.</p>
         </div>
 
         <div class="group-tabs" role="tablist" aria-label="Famílias de estilo" style="margin-bottom:0.9rem;">
@@ -615,9 +619,7 @@
     return `
       <section class="stage-shell stage-shell--board">
         <div class="stage-header">
-          <p class="eyebrow">Etapa 02/08 · Descoberta Estética (3/3)</p>
           <h1 class="stage-title">Quais paletas traduzem a <em>sensação</em> que você procura?</h1>
-          <p class="stage-lead">Compare todas as paletas juntas em um único painel. Clique em <strong>Ampliar</strong> para ver o ambiente em detalhe.</p>
         </div>
 
         <div class="visual-grid visual-grid--dense">
@@ -655,9 +657,7 @@
     return `
       <section class="stage-shell stage-shell--board">
         <div class="stage-header">
-          <p class="eyebrow">Etapa 03/08 · Materiais e Texturas</p>
           <h1 class="stage-title">Quais superfícies despertam sua <em>identificação?</em></h1>
-          <p class="stage-lead">Compare todos os materiais lado a lado e marque quantos desejar. Clique em <strong>Ampliar</strong> para inspecionar textura e acabamento.</p>
         </div>
 
         <div class="visual-grid visual-grid--dense">
@@ -704,9 +704,7 @@
     return `
       <section class="stage-shell stage-shell--board">
         <div class="stage-header">
-          <p class="eyebrow">Etapa 04/08 · Combinações de Materiais</p>
           <h1 class="stage-title">Quais composições produzem a sensação que você <em>procura?</em></h1>
-          <p class="stage-lead">Compare as combinações lado a lado. Clique em <strong>Ampliar</strong> para ver os detalhes de cada proposta.</p>
         </div>
 
         <div class="visual-grid visual-grid--board">
@@ -790,39 +788,37 @@
   }
 
   // -----------------------------------------------------------------------
-  // ETAPA 05/08 — ILUMINAÇÃO E ATMOSFERA (1/2 Simulador, 2/2 Qualidades)
+  // ETAPA 05/08 — ILUMINAÇÃO E ATMOSFERA (4 renders reais do mesmo ambiente!)
   // -----------------------------------------------------------------------
   function renderStep5LightingSimulator() {
     const activeScenario =
       findById(DATA.lightingScenarios, draft.selections.lightingScenario) || DATA.lightingScenarios[0];
-    const baseScenario = DATA.lightingScenarios[0];
+    const dayScenario = DATA.lightingScenarios[0]; // Luz Natural 5000K
+    const compareRight =
+      activeScenario.id === dayScenario.id ? DATA.lightingScenarios[2] : activeScenario;
     const split = ui.lightingCompareSplit;
 
     return `
-      <section class="stage-shell">
+      <section class="stage-shell stage-shell--board">
         <div class="stage-header">
-          <p class="eyebrow">Etapa 05/08 · Iluminação e Atmosfera (1/2)</p>
           <h1 class="stage-title">Qual clima de luz mais combina com <em>você?</em></h1>
-          <p class="stage-lead">Compare o mesmo ambiente preservando materiais e geometria. Arraste o divisor na imagem.</p>
         </div>
 
         <div class="lighting-studio">
           <div>
             <div class="lighting-viewport" id="lightingViewport">
               <div class="lighting-layer">
-                <img src="${DATA.lightingBaseImage}" alt="Ambiente com ${escapeHtml(activeScenario.title)}" style="filter:${activeScenario.filter};" />
-                <div class="lighting-layer__wash" style="background:${activeScenario.overlay};"></div>
+                <img src="${compareRight.image}" alt="Ambiente com ${escapeHtml(compareRight.title)}" />
               </div>
               <div class="lighting-layer lighting-layer--compare" id="lightingCompareLayer" style="clip-path:inset(0 ${100 - split}% 0 0);">
-                <img src="${DATA.lightingBaseImage}" alt="Referência em luz natural" style="filter:${baseScenario.filter};" />
-                <div class="lighting-layer__wash" style="background:${baseScenario.overlay};"></div>
+                <img src="${dayScenario.image}" alt="Ambiente em luz natural abundante" />
               </div>
-              <span class="lighting-label lighting-label--left">Luz Natural · 5000K</span>
-              <span class="lighting-label lighting-label--right">${escapeHtml(activeScenario.title)}</span>
+              <span class="lighting-label lighting-label--left">${escapeHtml(dayScenario.title)}</span>
+              <span class="lighting-label lighting-label--right">${escapeHtml(compareRight.title)}</span>
               <div class="lighting-divider" id="lightingDivider" style="left:${split}%;">
                 <div class="lighting-divider__handle" aria-hidden="true">⇄</div>
               </div>
-              <input type="range" min="5" max="95" value="${split}" class="lighting-range" id="lightingRange" aria-label="Comparar luz natural com cenário escolhido" />
+              <input type="range" min="5" max="95" value="${split}" class="lighting-range" id="lightingRange" aria-label="Arraste para comparar a iluminação do ambiente" />
             </div>
           </div>
 
@@ -848,14 +844,12 @@
 
   function renderStep5LightingQualities() {
     return `
-      <section class="checklist-shell">
+      <section class="checklist-shell checklist-shell--compact">
         <div class="checklist-header">
-          <p class="eyebrow">Etapa 05/08 · Iluminação e Atmosfera (2/2)</p>
           <h1 class="checklist-prompt">Quais efeitos de luz você valoriza nos ambientes?</h1>
-          <p class="checklist-instruction">Marque o que se aplica</p>
         </div>
 
-        <div class="checklist-list">
+        <div class="checklist-list checklist-list--compact">
           ${DATA.lightingPreferences
             .map((lp) => {
               const isSel = draft.selections.lightingPreferences.includes(lp.id);
@@ -864,7 +858,7 @@
                   ${circleCheckHtml()}
                   <span class="checklist-row__content">
                     <span class="checklist-row__label">${escapeHtml(lp.title)}</span>
-                    <span style="font-size:0.82rem;color:var(--ink-muted);">${escapeHtml(lp.desc)}</span>
+                    <span class="checklist-row__sub">${escapeHtml(lp.desc)}</span>
                   </span>
                 </button>
               `;
@@ -880,14 +874,12 @@
   // -----------------------------------------------------------------------
   function renderStep6Feelings() {
     return `
-      <section class="checklist-shell">
+      <section class="checklist-shell checklist-shell--compact">
         <div class="checklist-header">
-          <p class="eyebrow">Etapa 06/08 · Seu Jeito de Viver (1/3)</p>
           <h1 class="checklist-prompt">Como você gostaria de se sentir ao chegar em casa?</h1>
-          <p class="checklist-instruction">Marque o que se aplica</p>
         </div>
 
-        <div class="checklist-list">
+        <div class="checklist-list checklist-list--compact">
           ${DATA.homeFeelings
             .map((f) => {
               const isSel = draft.selections.homeFeelings.includes(f.id);
@@ -896,7 +888,7 @@
                   ${circleCheckHtml()}
                   <span class="checklist-row__content">
                     <span class="checklist-row__label">${escapeHtml(f.title)}</span>
-                    <span style="font-size:0.82rem;color:var(--ink-muted);">${escapeHtml(f.desc)}</span>
+                    <span class="checklist-row__sub">${escapeHtml(f.desc)}</span>
                   </span>
                 </button>
               `;
@@ -909,14 +901,12 @@
 
   function renderStep6RestSpaces() {
     return `
-      <section class="stage-shell">
+      <section class="stage-shell stage-shell--board">
         <div class="stage-header">
-          <p class="eyebrow">Etapa 06/08 · Seu Jeito de Viver (2/3)</p>
           <h1 class="stage-title">Qual espaço representa melhor o seu momento de <em>descanso?</em></h1>
-          <p class="stage-lead">Escolha a cena que mais se aproxima de como você gosta de desacelerar.</p>
         </div>
 
-        <div class="visual-grid visual-grid--2">
+        <div class="visual-grid visual-grid--dense">
           ${DATA.restSpaces
             .map((rs) => {
               const isSel = draft.selections.restSpace === rs.id;
@@ -925,6 +915,7 @@
                   <div class="choice-card__media">
                     <img src="${rs.image}" alt="${escapeHtml(rs.title)}" loading="lazy" />
                     ${checkMarkHtml()}
+                    ${zoomBtnHtml(rs.image, rs.title, rs.desc, 'restSpace', rs.id)}
                   </div>
                   <div class="choice-card__body">
                     <h2 class="choice-card__title">${escapeHtml(rs.title)}</h2>
@@ -941,14 +932,12 @@
 
   function renderStep6SpecialElements() {
     return `
-      <section class="checklist-shell">
+      <section class="checklist-shell checklist-shell--compact">
         <div class="checklist-header">
-          <p class="eyebrow">Etapa 06/08 · Seu Jeito de Viver (3/3)</p>
           <h1 class="checklist-prompt">O que faz um ambiente ser especial para você?</h1>
-          <p class="checklist-instruction">Marque o que se aplica</p>
         </div>
 
-        <div class="checklist-list">
+        <div class="checklist-list checklist-list--compact">
           ${DATA.specialElements
             .map((el) => {
               const isSel = draft.selections.specialElements.includes(el.id);
@@ -1118,11 +1107,88 @@
   // -----------------------------------------------------------------------
   // FASE 2 — ETAPA 08/08: CHECKLIST INTELIGENTE (1 PERGUNTA POR TELA)
   // -----------------------------------------------------------------------
+  function parseOccupancyState(qId) {
+    const raw = (draft.checklist.answers[qId] || [])[0] || '';
+    const m = raw.match(/De\s+(\d+)\s+até\s+(\d+)/i);
+    const t = raw.match(/Equipe fixa:\s*(\d+)/i);
+    return {
+      min: m ? Number(m[1]) : 1,
+      max: m ? Number(m[2]) : 5,
+      team: t ? Number(t[1]) : 2
+    };
+  }
+
+  function saveOccupancyState(qId, next) {
+    const min = Math.max(1, Math.min(500, Number(next.min) || 1));
+    const max = Math.max(min, Math.min(500, Number(next.max) || min));
+    const team = Math.max(0, Math.min(500, Number(next.team) || 0));
+    const label =
+      team > 0
+        ? `De ${min} até ${max} pessoas simultaneamente (Equipe fixa: ${team})`
+        : `De ${min} até ${max} pessoas simultaneamente`;
+    draft.checklist.answers[qId] = [label];
+    if (!draft.checklist.originalAnswers[qId]) {
+      draft.checklist.originalAnswers[qId] = [label];
+    }
+    persist();
+  }
+
   function renderChecklistQuestion(question, subIdx, totalSubs) {
     // Registra pergunta exibida no cadastro estruturado
     if (!draft.checklist.displayedQuestionIds.includes(question.id)) {
       draft.checklist.displayedQuestionIds.push(question.id);
       persist();
+    }
+
+    // Modo faixa personalizada de pessoas (Comercial)
+    if (question.mode === 'occupancy_range') {
+      const occ = parseOccupancyState(question.id);
+      if (!(draft.checklist.answers[question.id] || []).length) {
+        saveOccupancyState(question.id, occ);
+      }
+      return `
+        <section class="checklist-shell">
+          <div class="checklist-header">
+            <h1 class="checklist-prompt">${escapeHtml(question.prompt)}</h1>
+            <p class="checklist-instruction">${escapeHtml(question.instruction)}</p>
+          </div>
+
+          <div class="occupancy-card">
+            <div class="occupancy-grid">
+              <div>
+                <label class="field-label" for="occMinInput">Mínimo de pessoas</label>
+                <div class="stepper-control">
+                  <button type="button" class="stepper-btn" data-occ-q="${question.id}" data-occ-field="min" data-occ-delta="-1" aria-label="Diminuir mínimo">−</button>
+                  <input class="stepper-input" id="occMinInput" type="number" min="1" max="500" value="${occ.min}" data-occ-input="${question.id}" data-occ-field="min" />
+                  <button type="button" class="stepper-btn" data-occ-q="${question.id}" data-occ-field="min" data-occ-delta="1" aria-label="Aumentar mínimo">+</button>
+                </div>
+              </div>
+
+              <div>
+                <label class="field-label" for="occMaxInput">Máximo simultâneo</label>
+                <div class="stepper-control">
+                  <button type="button" class="stepper-btn" data-occ-q="${question.id}" data-occ-field="max" data-occ-delta="-1" aria-label="Diminuir máximo">−</button>
+                  <input class="stepper-input" id="occMaxInput" type="number" min="1" max="500" value="${occ.max}" data-occ-input="${question.id}" data-occ-field="max" />
+                  <button type="button" class="stepper-btn" data-occ-q="${question.id}" data-occ-field="max" data-occ-delta="1" aria-label="Aumentar máximo">+</button>
+                </div>
+              </div>
+
+              <div class="field-group--full">
+                <label class="field-label" for="occTeamInput">Equipe fixa trabalhando no local <span class="field-optional">(opcional)</span></label>
+                <div class="stepper-control" style="max-width:240px;">
+                  <button type="button" class="stepper-btn" data-occ-q="${question.id}" data-occ-field="team" data-occ-delta="-1" aria-label="Diminuir equipe">−</button>
+                  <input class="stepper-input" id="occTeamInput" type="number" min="0" max="500" value="${occ.team}" data-occ-input="${question.id}" data-occ-field="team" />
+                  <button type="button" class="stepper-btn" data-occ-q="${question.id}" data-occ-field="team" data-occ-delta="1" aria-label="Aumentar equipe">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="occupancy-summary-pill" id="occSummaryText">
+              ${escapeHtml((draft.checklist.answers[question.id] || [])[0] || '')}
+            </div>
+          </div>
+        </section>
+      `;
     }
 
     const selectedIds = draft.checklist.answers[question.id] || [];
@@ -1138,7 +1204,7 @@
     return `
       <section class="checklist-shell">
         <div class="checklist-header">
-          <p class="eyebrow">Etapa 08/08 · ${escapeHtml(question.category)}</p>
+          <p class="eyebrow">${escapeHtml(question.category)}</p>
           <h1 class="checklist-prompt">${escapeHtml(question.prompt)}</h1>
           <p class="checklist-instruction">${escapeHtml(question.instruction)}</p>
         </div>
@@ -1200,7 +1266,6 @@
     return `
       <section class="checklist-shell">
         <div class="checklist-header">
-          <p class="eyebrow">Etapa 08/08 · Prioridades</p>
           <h1 class="checklist-prompt">O que é mais importante resolver?</h1>
           <p class="checklist-instruction">Destaque até 3 prioridades entre as necessidades que você marcou.</p>
         </div>
@@ -1235,15 +1300,13 @@
     return `
       <section class="checklist-shell">
         <div class="checklist-header">
-          <p class="eyebrow">Etapa 08/08 · Últimos Detalhes</p>
-          <h1 class="checklist-prompt">Deseja acrescentar alguma observação antes do seu resumo?</h1>
-          <p class="checklist-instruction">Se quiser enviar seu perfil para a equipe da Vidart, preencha seu contato abaixo.</p>
+          <h1 class="checklist-prompt">Deseja acrescentar alguma observação?</h1>
         </div>
 
         <div class="form-card">
           <div class="field-group">
             <label class="field-label" for="chkNotes">Observações adicionais <span class="field-optional">(opcional)</span></label>
-            <textarea class="field-textarea" id="chkNotes" placeholder="Algum detalhe importante da rotina, restrição do imóvel ou referência extra...">${escapeHtml(draft.checklist.notes || '')}</textarea>
+            <textarea class="field-textarea" id="chkNotes" placeholder="Ex: rotina, restrições ou referências...">${escapeHtml(draft.checklist.notes || '')}</textarea>
           </div>
 
           <div class="form-grid">
@@ -1713,6 +1776,33 @@
       input.addEventListener('input', (e) => {
         draft.projectContext[input.dataset.ctxInput] = e.target.value;
         persist();
+      });
+    });
+
+    // FASE 2 — Faixa personalizada de pessoas (Comercial)
+    els.stageContainer.querySelectorAll('[data-occ-q]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const qId = btn.dataset.occQ;
+        const field = btn.dataset.occField;
+        const delta = Number(btn.dataset.occDelta);
+        const occ = parseOccupancyState(qId);
+        occ[field] = Math.max(field === 'team' ? 0 : 1, (occ[field] || 0) + delta);
+        if (field === 'min' && occ.min > occ.max) occ.max = occ.min;
+        if (field === 'max' && occ.max < occ.min) occ.min = occ.max;
+        saveOccupancyState(qId, occ);
+        render();
+      });
+    });
+    els.stageContainer.querySelectorAll('[data-occ-input]').forEach((input) => {
+      input.addEventListener('change', (e) => {
+        const qId = input.dataset.occInput;
+        const field = input.dataset.occField;
+        const occ = parseOccupancyState(qId);
+        occ[field] = Number(e.target.value);
+        if (field === 'min' && occ.min > occ.max) occ.max = occ.min;
+        if (field === 'max' && occ.max < occ.min) occ.min = occ.max;
+        saveOccupancyState(qId, occ);
+        render();
       });
     });
 

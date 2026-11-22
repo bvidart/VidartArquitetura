@@ -500,15 +500,10 @@
         roomId: 'comercial_fluxo',
         category: 'Comercial · Usuários e Fluxo',
         prompt: 'Qual é o volume habitual de pessoas no espaço?',
-        instruction: 'Escolha a opção mais próxima',
-        mode: 'single',
+        instruction: 'Defina a faixa exata de pessoas que utilizam o espaço simultaneamente',
+        mode: 'occupancy_range',
         kind: 'usage',
-        options: [
-          { id: 'com_usr_ate5', label: 'Até 5 pessoas simultaneamente.' },
-          { id: 'com_usr_6a15', label: 'De 6 a 15 pessoas simultaneamente.' },
-          { id: 'com_usr_16a40', label: 'De 16 a 40 pessoas simultaneamente.' },
-          { id: 'com_usr_40plus', label: 'Mais de 40 pessoas simultaneamente.' }
-        ]
+        options: []
       }
     ];
 

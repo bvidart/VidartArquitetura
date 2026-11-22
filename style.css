@@ -2877,6 +2877,182 @@ button,
 }
 
 /* ==========================================================================
+   17E. REFINOS DA APRESENTAÇÃO, CHECKLIST COMPACTO & FAIXA DE PESSOAS
+   ========================================================================== */
+
+/* Símbolo VA ampliado com "Arquitetura e Interiores" abaixo na tela inicial */
+.welcome-brand {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-bottom: 2.25rem;
+}
+
+.welcome-brand__emblem {
+  width: 72px;
+  height: 72px;
+}
+
+.welcome-brand__sub {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+
+.welcome-headline {
+  font-size: clamp(2rem, 3.6vw, 3.15rem);
+  line-height: 1.12;
+  max-width: 17ch;
+}
+
+.welcome-sub {
+  margin-top: 2rem;
+  font-size: 0.96rem;
+  line-height: 1.75;
+  color: var(--ink-secondary);
+  max-width: 42ch;
+}
+
+/* Caixas menores em grade 2 colunas para caber em uma tela só (Etapas 5.2, 6.1, 6.3) */
+.checklist-shell--compact {
+  max-width: 860px;
+  padding-top: clamp(1.3rem, 2.8vw, 2.2rem);
+}
+
+.checklist-shell--compact .checklist-header {
+  margin-bottom: 1.35rem;
+}
+
+.checklist-shell--compact .checklist-prompt {
+  font-size: clamp(1.75rem, 3.1vw, 2.45rem);
+}
+
+.checklist-list--compact {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.checklist-list--compact .checklist-row {
+  min-height: 48px;
+  padding: 0.72rem 0.95rem;
+  gap: 0.75rem;
+  border-radius: 12px;
+}
+
+.checklist-list--compact .checklist-row__label {
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.checklist-list--compact .checklist-row__sub {
+  font-size: 0.76rem;
+  color: var(--ink-muted);
+  line-height: 1.35;
+}
+
+/* Seletor personalizável de faixa de pessoas (Comercial) */
+.occupancy-card {
+  padding: 1.4rem 1.5rem;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.occupancy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.1rem;
+}
+
+.stepper-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.stepper-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--hairline-strong);
+  background-color: var(--bg-canvas);
+  font-size: 1.2rem;
+  display: grid;
+  place-items: center;
+  color: var(--ink-primary);
+  flex-shrink: 0;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.stepper-btn:hover {
+  background-color: var(--ink-primary);
+  border-color: var(--ink-primary);
+  color: var(--ink-light);
+}
+
+.stepper-input {
+  width: 100%;
+  min-height: 42px;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 500;
+  border-radius: 12px;
+  border: 1px solid var(--hairline-strong);
+  background-color: var(--bg-canvas);
+  color: var(--ink-primary);
+  padding: 0.45rem;
+}
+
+.occupancy-summary-pill {
+  padding: 0.78rem 1.05rem;
+  border-radius: 12px;
+  background-color: var(--bronze-soft);
+  color: var(--bronze-dark);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+/* Textarea confortável sem cortar texto ou placeholder */
+.field-textarea {
+  min-height: 118px;
+  line-height: 1.55;
+  padding: 0.9rem 1rem;
+}
+
+@media (max-width: 640px) {
+  .welcome-brand {
+    margin-bottom: 1.5rem;
+  }
+
+  .welcome-brand__emblem {
+    width: 60px;
+    height: 60px;
+  }
+
+  .welcome-headline {
+    font-size: clamp(1.75rem, 7vw, 2.25rem);
+  }
+
+  .welcome-sub {
+    margin-top: 1.35rem;
+  }
+
+  .checklist-list--compact,
+  .occupancy-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
    18. PRINT / PDF DOSSIER EXPORT
    ========================================================================== */
 
