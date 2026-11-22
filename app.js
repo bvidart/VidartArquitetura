@@ -19,7 +19,9 @@
     adminSearch: '',
     adminTab: 'records',
     submitFeedback: null,
-    returnToReveal: false
+    returnToReveal: false,
+    lightboxItems: [],
+    lightboxIndex: 0
   };
 
   const els = {
@@ -40,6 +42,9 @@
     lightboxImg: document.getElementById('lightboxImg'),
     lightboxTitle: document.getElementById('lightboxTitle'),
     lightboxDesc: document.getElementById('lightboxDesc'),
+    lightboxPrevBtn: document.getElementById('lightboxPrevBtn'),
+    lightboxNextBtn: document.getElementById('lightboxNextBtn'),
+    lightboxSelectBtn: document.getElementById('lightboxSelectBtn'),
     lightboxCloseBtn: document.getElementById('lightboxCloseBtn'),
     openAdminBtn: document.getElementById('openAdminBtn'),
     adminModal: document.getElementById('adminModal'),
@@ -516,15 +521,14 @@
   function renderStep2Environments() {
     const selected = draft.selections.environments;
     return `
-      <section class="stage-shell">
+      <section class="stage-shell stage-shell--board">
         <div class="stage-header">
           <p class="eyebrow">Etapa 02/08 · Descoberta Estética (1/3)</p>
           <h1 class="stage-title">Em qual destes espaços você gostaria de <em>estar?</em></h1>
-          <p class="stage-lead">Observe a luz, as proporções e a sensação de cada ambiente.</p>
-          <p class="stage-question">Selecione um ou mais ambientes que despertem afinidade imediata.</p>
+          <p class="stage-lead">Compare todos os ambientes lado a lado e marque os que despertam afinidade. Clique em <strong>Ampliar</strong> para ver cada foto em tela cheia.</p>
         </div>
 
-        <div class="visual-grid">
+        <div class="visual-grid visual-grid--board">
           ${DATA.environments
             .map((env) => {
               const isSel = selected.includes(env.id);
@@ -534,7 +538,7 @@
                     <img src="${env.image}" alt="${escapeHtml(env.title)}" loading="lazy" />
                     <span class="choice-card__badge">${escapeHtml(env.atmosphere)}</span>
                     ${checkMarkHtml()}
-                    ${zoomBtnHtml(env.image, env.title, env.subtitle)}
+                    ${zoomBtnHtml(env.image, env.title, env.subtitle, 'environments', env.id)}
                   </div>
                   <div class="choice-card__body">
                     <h2 class="choice-card__title">${escapeHtml(env.title)}</h2>
@@ -557,14 +561,14 @@
     const groupStyles = DATA.styles.filter((st) => st.groupId === activeGroup.id);
 
     return `
-      <section class="stage-shell">
+      <section class="stage-shell stage-shell--board">
         <div class="stage-header">
           <p class="eyebrow">Etapa 02/08 · Descoberta Estética (2/3)</p>
           <h1 class="stage-title">Quais linguagens arquitetônicas conversam com <em>você?</em></h1>
-          <p class="stage-lead">Você pode combinar estilos de famílias diferentes — projetos autorais nascem de referências híbridas.</p>
+          <p class="stage-lead">Compare os estilos na mesma tela e combine livremente entre famílias. Clique em <strong>Ampliar</strong> para ver detalhes.</p>
         </div>
 
-        <div class="group-tabs" role="tablist" aria-label="Famílias de estilo">
+        <div class="group-tabs" role="tablist" aria-label="Famílias de estilo" style="margin-bottom:0.9rem;">
           ${DATA.styleGroups
             .map((g) => {
               const count = DATA.styles.filter(
@@ -582,9 +586,7 @@
             .join('')}
         </div>
 
-        <p class="group-intro">${escapeHtml(activeGroup.subtitle)}</p>
-
-        <div class="visual-grid ${groupStyles.length === 4 ? 'visual-grid--2' : ''}">
+        <div class="visual-grid ${groupStyles.length === 4 ? 'visual-grid--dense' : 'visual-grid--board'}">
           ${groupStyles
             .map((st) => {
               const isSel = draft.selections.styles.includes(st.id);
@@ -593,7 +595,7 @@
                   <div class="choice-card__media">
                     <img src="${st.image}" alt="${escapeHtml(st.title)}" loading="lazy" />
                     ${checkMarkHtml()}
-                    ${zoomBtnHtml(st.image, st.title, st.desc)}
+                    ${zoomBtnHtml(st.image, st.title, st.desc, 'styles', st.id)}
                   </div>
                   <div class="choice-card__body">
                     <h2 class="choice-card__title">${escapeHtml(st.title)}</h2>
@@ -611,15 +613,14 @@
   function renderStep2Palettes() {
     const selected = draft.selections.palettes;
     return `
-      <section class="stage-shell">
+      <section class="stage-shell stage-shell--board">
         <div class="stage-header">
           <p class="eyebrow">Etapa 02/08 · Descoberta Estética (3/3)</p>
           <h1 class="stage-title">Quais paletas traduzem a <em>sensação</em> que você procura?</h1>
-          <p class="stage-lead">Observe como cada família de cores altera a percepção do ambiente.</p>
-          <p class="stage-question">Selecione uma ou mais paletas preferidas.</p>
+          <p class="stage-lead">Compare todas as paletas juntas em um único painel. Clique em <strong>Ampliar</strong> para ver o ambiente em detalhe.</p>
         </div>
 
-        <div class="visual-grid">
+        <div class="visual-grid visual-grid--dense">
           ${DATA.palettes
             .map((pal) => {
               const isSel = selected.includes(pal.id);
@@ -629,11 +630,10 @@
                     <img src="${pal.image}" alt="${escapeHtml(pal.title)}" loading="lazy" />
                     <span class="choice-card__badge">${escapeHtml(pal.feeling)}</span>
                     ${checkMarkHtml()}
-                    ${zoomBtnHtml(pal.image, pal.title, pal.desc)}
+                    ${zoomBtnHtml(pal.image, pal.title, pal.desc, 'palettes', pal.id)}
                   </div>
                   <div class="choice-card__body">
                     <h2 class="choice-card__title">${escapeHtml(pal.title)}</h2>
-                    <p class="choice-card__desc">${escapeHtml(pal.desc)}</p>
                     <div class="swatch-bar">
                       ${pal.colors.map((c) => `<span style="background:${c}"></span>`).join('')}
                     </div>
@@ -653,15 +653,14 @@
   function renderStep3Materials() {
     const selected = draft.selections.materials;
     return `
-      <section class="stage-shell">
+      <section class="stage-shell stage-shell--board">
         <div class="stage-header">
           <p class="eyebrow">Etapa 03/08 · Materiais e Texturas</p>
           <h1 class="stage-title">Quais superfícies despertam sua <em>identificação?</em></h1>
-          <p class="stage-lead">Observe relevo, acabamento e comportamento da luz em cada material.</p>
-          <p class="stage-question">Marque quantos materiais desejar.</p>
+          <p class="stage-lead">Compare todos os materiais lado a lado e marque quantos desejar. Clique em <strong>Ampliar</strong> para inspecionar textura e acabamento.</p>
         </div>
 
-        <div class="visual-grid">
+        <div class="visual-grid visual-grid--dense">
           ${DATA.materials
             .map((mat) => {
               const isSel = selected.includes(mat.id);
@@ -671,15 +670,14 @@
                     <img src="${mat.image}" alt="${escapeHtml(mat.title)}" loading="lazy" />
                     <span class="choice-card__badge">${escapeHtml(mat.category)}</span>
                     ${checkMarkHtml()}
-                    ${zoomBtnHtml(mat.image, mat.title, `${mat.finish} — ${mat.desc}`)}
+                    ${zoomBtnHtml(mat.image, mat.title, `${mat.finish} — ${mat.desc}`, 'materials', mat.id)}
                   </div>
                   <div class="choice-card__body">
                     <div class="material-head-row">
                       <h2 class="choice-card__title">${escapeHtml(mat.title)}</h2>
-                      <span class="material-swatch-chip" style="background:${mat.swatch}" aria-hidden="true"></span>
+                      <span class="material-swatch-chip" style="background:${mat.swatch};width:20px;height:20px;" aria-hidden="true"></span>
                     </div>
-                    <span class="choice-card__kicker">${escapeHtml(mat.finish)}</span>
-                    <p class="choice-card__desc">${escapeHtml(mat.desc)}</p>
+                    <p class="choice-card__desc">${escapeHtml(mat.finish)}</p>
                   </div>
                 </article>
               `;
@@ -704,14 +702,14 @@
     const accentItem = findById(DATA.composerSlots.accent, custom.accent);
 
     return `
-      <section class="stage-shell">
+      <section class="stage-shell stage-shell--board">
         <div class="stage-header">
           <p class="eyebrow">Etapa 04/08 · Combinações de Materiais</p>
           <h1 class="stage-title">Quais composições produzem a sensação que você <em>procura?</em></h1>
-          <p class="stage-lead">Ordenamos sugestões com base nas suas escolhas anteriores. Selecione uma ou mais combinações.</p>
+          <p class="stage-lead">Compare as combinações lado a lado. Clique em <strong>Ampliar</strong> para ver os detalhes de cada proposta.</p>
         </div>
 
-        <div class="visual-grid">
+        <div class="visual-grid visual-grid--board">
           ${ranked
             .map((cmb, i) => {
               const isSel = selected.includes(cmb.id);
@@ -720,9 +718,9 @@
                 <article class="choice-card ${isSel ? 'is-selected' : ''}" tabindex="0" role="checkbox" aria-checked="${isSel}" data-select-type="combinations" data-id="${cmb.id}">
                   <div class="choice-card__media">
                     <img src="${cmb.image}" alt="${escapeHtml(cmb.title)}" loading="lazy" />
-                    ${isSuggested ? `<span class="choice-card__badge choice-card__badge--suggested">Sugerido para você</span>` : ''}
+                    ${isSuggested ? `<span class="choice-card__badge choice-card__badge--suggested">Sugerido</span>` : ''}
                     ${checkMarkHtml()}
-                    ${zoomBtnHtml(cmb.image, cmb.title, cmb.desc)}
+                    ${zoomBtnHtml(cmb.image, cmb.title, cmb.desc, 'combinations', cmb.id)}
                   </div>
                   <div class="choice-card__body">
                     <h2 class="choice-card__title">${escapeHtml(cmb.title)}</h2>
@@ -1598,11 +1596,19 @@
       });
     }
 
-    // Zoom lightbox
-    els.stageContainer.querySelectorAll('[data-zoom-img]').forEach((btn) => {
+    // Zoom lightbox com navegação entre todas as imagens da tela atual
+    const zoomBtns = Array.from(els.stageContainer.querySelectorAll('[data-zoom-img]'));
+    const zoomGallery = zoomBtns.map((b) => ({
+      src: b.dataset.zoomImg,
+      title: b.dataset.zoomTitle || '',
+      desc: b.dataset.zoomDesc || '',
+      selectType: b.dataset.zoomType || '',
+      itemId: b.dataset.zoomId || ''
+    }));
+    zoomBtns.forEach((btn, idx) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        openLightbox(btn.dataset.zoomImg, btn.dataset.zoomTitle, btn.dataset.zoomDesc);
+        openLightboxGallery(zoomGallery, idx);
       });
     });
 
@@ -2146,6 +2152,9 @@
   els.prevStepBtn.addEventListener('click', goPrev);
   els.nextStepBtn.addEventListener('click', goNext);
 
+  els.lightboxPrevBtn.addEventListener('click', () => stepLightbox(-1));
+  els.lightboxNextBtn.addEventListener('click', () => stepLightbox(1));
+  els.lightboxSelectBtn.addEventListener('click', toggleLightboxSelection);
   els.lightboxCloseBtn.addEventListener('click', closeLightbox);
   els.lightboxModal.addEventListener('click', (e) => {
     if (e.target === els.lightboxModal) closeLightbox();
@@ -2161,6 +2170,10 @@
     if (e.key === 'Escape') {
       if (!els.lightboxModal.hidden) closeLightbox();
       else if (!els.adminModal.hidden) closeAdminModal();
+    } else if (!els.lightboxModal.hidden && e.key === 'ArrowLeft') {
+      stepLightbox(-1);
+    } else if (!els.lightboxModal.hidden && e.key === 'ArrowRight') {
+      stepLightbox(1);
     }
   });
 

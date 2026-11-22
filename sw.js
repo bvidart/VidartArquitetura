@@ -1,5 +1,5 @@
-// Service Worker — VA. Arquitetura & Interiores — v6 (Fase 1 + Fase 2)
-const CACHE_NAME = 'va-atelier-v6';
+// Service Worker — VA. Arquitetura & Interiores — v7 (Comparação em Bloco Único)
+const CACHE_NAME = 'va-atelier-v7';
 
 const SHELL_ASSETS = [
   './',

@@ -2632,6 +2632,251 @@ button,
 }
 
 /* ==========================================================================
+   17D. PAINEL DE COMPARAÇÃO EM BLOCO ÚNICO (SEM ROLAGEM + CLIQUE PARA AMPLIAR)
+   ========================================================================== */
+
+.stage-shell--board {
+  padding-top: clamp(1rem, 2.2vw, 1.75rem);
+  padding-bottom: 1rem;
+}
+
+.stage-shell--board .stage-header {
+  margin-bottom: clamp(1rem, 2vw, 1.4rem);
+  max-width: 860px;
+}
+
+.stage-shell--board .eyebrow {
+  margin-bottom: 0.45rem;
+}
+
+.stage-shell--board .stage-title {
+  font-size: clamp(1.65rem, 3vw, 2.45rem);
+  line-height: 1.1;
+}
+
+.stage-shell--board .stage-lead {
+  margin-top: 0.45rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.board-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--bronze-dark);
+}
+
+/* Grade compacta para comparar todas as opções em uma só visualização */
+.visual-grid--board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.visual-grid--dense {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.visual-grid--board .choice-card,
+.visual-grid--dense .choice-card {
+  border-radius: 14px;
+}
+
+.visual-grid--board .choice-card__media {
+  aspect-ratio: 16 / 10;
+  height: clamp(120px, 19vh, 168px);
+  max-height: none;
+}
+
+.visual-grid--dense .choice-card__media {
+  aspect-ratio: 16 / 10;
+  height: clamp(96px, 14vh, 132px);
+  max-height: none;
+}
+
+.visual-grid--board .choice-card__body,
+.visual-grid--dense .choice-card__body {
+  padding: 0.68rem 0.85rem 0.78rem;
+  gap: 0.22rem;
+}
+
+.visual-grid--board .choice-card__title,
+.visual-grid--dense .choice-card__title {
+  font-size: 1.12rem;
+  line-height: 1.16;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.visual-grid--board .choice-card__desc,
+.visual-grid--dense .choice-card__desc {
+  font-size: 0.76rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.visual-grid--board .choice-card__badge,
+.visual-grid--dense .choice-card__badge {
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.2rem 0.52rem;
+  font-size: 0.6rem;
+}
+
+.visual-grid--board .choice-card__check,
+.visual-grid--dense .choice-card__check {
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 26px;
+  height: 26px;
+}
+
+.visual-grid--board .swatch-bar,
+.visual-grid--dense .swatch-bar {
+  height: 16px;
+  margin-top: 0.38rem;
+}
+
+/* Botão explícito "Ampliar" em cada miniatura */
+.choice-card__zoom--pill {
+  width: auto;
+  height: 28px;
+  padding: 0 0.6rem;
+  border-radius: 999px;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background-color: rgba(30, 26, 23, 0.78);
+  color: var(--ink-light);
+  border: 1px solid rgba(244, 239, 230, 0.22);
+}
+
+.choice-card__zoom--pill:hover {
+  background-color: var(--bronze);
+  border-color: var(--bronze);
+  transform: scale(1.03);
+}
+
+/* Lightbox aprimorado com navegação Anterior/Próxima e botão Selecionar */
+.lightbox-dialog__img-wrap {
+  position: relative;
+}
+
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background-color: rgba(30, 26, 23, 0.72);
+  color: var(--ink-light);
+  border: 1px solid rgba(244, 239, 230, 0.24);
+  font-size: 1.5rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  z-index: 2;
+  transition: background-color 180ms ease;
+}
+
+.lightbox-nav:hover {
+  background-color: var(--bronze);
+}
+
+.lightbox-nav--prev { left: 0.75rem; }
+.lightbox-nav--next { right: 0.75rem; }
+
+.lightbox-dialog__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.lightbox-dialog__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1024px) {
+  .visual-grid--dense {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Mobile: grade 2 colunas compacta para comparar várias opções na mesma tela sem rolar muito */
+@media (max-width: 640px) {
+  .visual-grid--board,
+  .visual-grid--dense {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.6rem !important;
+  }
+
+  .visual-grid--board .choice-card__media,
+  .visual-grid--dense .choice-card__media {
+    height: auto;
+    aspect-ratio: 4 / 3;
+  }
+
+  .visual-grid--board .choice-card__body,
+  .visual-grid--dense .choice-card__body {
+    padding: 0.55rem 0.62rem 0.65rem;
+  }
+
+  .visual-grid--board .choice-card__title,
+  .visual-grid--dense .choice-card__title {
+    font-size: 0.96rem;
+    -webkit-line-clamp: 2;
+  }
+
+  /* No celular, descrição longa fica no Lightbox ao clicar em Ampliar */
+  .visual-grid--board .choice-card__desc,
+  .visual-grid--dense .choice-card__desc {
+    display: none;
+  }
+
+  .visual-grid--board .choice-card__badge,
+  .visual-grid--dense .choice-card__badge {
+    display: none;
+  }
+
+  .visual-grid--board .choice-card__check,
+  .visual-grid--dense .choice-card__check {
+    width: 24px;
+    height: 24px;
+  }
+
+  .choice-card__zoom--pill {
+    height: 26px;
+    padding: 0 0.48rem;
+    font-size: 0.6rem;
+  }
+
+  .lightbox-dialog__actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+}
+
+/* ==========================================================================
    18. PRINT / PDF DOSSIER EXPORT
    ========================================================================== */
 
